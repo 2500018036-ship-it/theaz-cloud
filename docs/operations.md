@@ -98,9 +98,11 @@ NPM's cloud proxy configuration and SQLite database, plus Azure's cloud vhost, a
 cd /mnt/data/docker-compose/cloud-storage
 sudo python3 /mnt/data/www/cloud-storage/current/scripts/smoke.py \
   --url https://cloud.azrilachdi.web.id --compose-dir "$PWD" \
-  --env production.env --env release.env
+  --env production.env --env release.env --request-timeout 180
 ```
 
 The test creates dedicated random `smoke_<id>_*` accounts and invitations, uses private tmpfs credentials, verifies downloads by SHA-256, checks quota and access controls, then suspends the generated accounts and removes their credential file. Small test file/folder records are retained for audit; production user data is unchanged. On interrupted tests, identify those exact test accounts through admin and suspend them; never delete unrelated accounts.
+
+The audited server's existing network path is slow for request bodies: a 1 MiB diagnostic POST completed immediately through local NPM/application, around 92 seconds through the direct Azure-to-Debian WireGuard route, and 117 seconds through Azure HTTPS. The public quota test took 160 seconds and passed with a 180-second socket timeout. This is a transport limitation, not a throughput/load guarantee. The CLI timeout is configurable; increasing it does not change server upload limits. Investigate the VPN/gateway path before relying on large remote transfers; changing that existing shared network requires separate approval.
 
 Email delivery and high-concurrency load are outside this deferred-email rollout. Review PHP/MariaDB logs and RAM/disk usage regularly. File-session storage assumes one app instance; use shared session/cache storage before scaling replicas. Rotate dedicated deployment keys by replacing GitHub environment secrets and corresponding restricted public keys together; keep private values out of logs.

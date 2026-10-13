@@ -14,8 +14,9 @@ import urllib.request
 
 
 class Browser:
-    def __init__(self, base):
+    def __init__(self, base, timeout=180):
         self.base = base.rstrip('/')
+        self.timeout = timeout
         self.cookies = http.cookiejar.CookieJar()
         self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.cookies))
 
@@ -27,10 +28,13 @@ class Browser:
             data = urllib.parse.urlencode(data).encode()
         req = urllib.request.Request(self.base + path, data=data, headers=headers)
         try:
-            with self.opener.open(req, timeout=60) as response:
+            with self.opener.open(req, timeout=self.timeout) as response:
                 return response.status, response.read(), response.headers, response.geturl()
         except urllib.error.HTTPError as error:
             return error.code, error.read(), error.headers, error.geturl()
+        except TimeoutError:
+            method = 'POST' if data is not None else 'GET'
+            raise RuntimeError('%s %s timed out after %s seconds.' % (method, path.split('?')[0], self.timeout)) from None
 
     def post(self, path, values, token_path=None):
         body = self.request(token_path or path)[1].decode()
@@ -64,7 +68,10 @@ def main():
     parser.add_argument('--file', default='compose.yaml')
     parser.add_argument('--overlay')
     parser.add_argument('--project')
+    parser.add_argument('--request-timeout', type=int, default=180, help='HTTP socket timeout in seconds for slow public/VPN transfers.')
     args = parser.parse_args()
+    if args.request_timeout < 1:
+        parser.error('--request-timeout must be positive.')
     compose = ['docker', 'compose']
     for env in args.env:
         compose += ['--env-file', env]
@@ -80,7 +87,7 @@ def main():
     cli('php', 'spark', 'ops:smoke-fixtures', '--output', fixture_path)
     fixtures = json.loads(cli('cat', fixture_path))
     try:
-        anonymous = Browser(args.url)
+        anonymous = Browser(args.url, args.request_timeout)
         assert anonymous.request('/ready')[0] == 200, 'Readiness failed'
         assert anonymous.request('/health')[0] == 200, 'Liveness failed'
         assert anonymous.request('/.env')[0] in (403, 404), 'Environment exposed'
@@ -90,7 +97,7 @@ def main():
         assert '/admin/dashboard' not in denied[3], 'Login bypassed CSRF'
         clients = []
         for fixture in fixtures['users']:
-            client = Browser(args.url)
+            client = Browser(args.url, args.request_timeout)
             invalid = client.post('/register', {'invitation_code': 'INVALID-CODE-0000', 'username': fixture['username'], 'email': fixture['email'], 'password': fixture['password'], 'password_confirm': fixture['password']})
             assert b'Invitation code is invalid' in invalid[1], 'Invalid invite accepted'
             registered = client.post('/register', {'invitation_code': fixture['invite'], 'username': fixture['username'], 'email': fixture['email'], 'password': fixture['password'], 'password_confirm': fixture['password'], 'role': 'super_admin'})
@@ -100,7 +107,7 @@ def main():
             assert client.request('/admin/dashboard')[0] == 403, 'User obtained administrator access'
             clients.append(client)
         one, two = clients
-        admin = Browser(args.url)
+        admin = Browser(args.url, args.request_timeout)
         logged = admin.post('/login', {'identifier': fixtures['admin']['username'], 'password': fixtures['admin']['password']})
         assert '/admin/dashboard' in logged[3] and logged[0] == 200, 'Admin dashboard/login failed'
         folder = one.post('/drive/folders', {'name': 'Deployment smoke folder'}, '/drive')
