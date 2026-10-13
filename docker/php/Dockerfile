@@ -35,6 +35,7 @@ FROM base AS dependencies
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 COPY . /var/www/html
+RUN mkdir -p writable/cache writable/debugbar writable/logs writable/session writable/uploads
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --no-scripts --optimize-autoloader
 
 FROM dependencies AS test
