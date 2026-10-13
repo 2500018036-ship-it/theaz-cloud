@@ -9,12 +9,25 @@ repo=https://github.com/2500018036-ship-it/theaz-cloud.git
 root=/mnt/data/www/cloud-storage
 stack=/mnt/data/docker-compose/cloud-storage
 release="$root/releases/$sha"
+# The job-scoped read-only token arrives over SSH stdin, never in command arguments.
+github_token=''
+IFS= read -r -t 10 github_token || true
+export CLOUD_DEPLOY_GITHUB_TOKEN="$github_token"
+unset github_token
 python3 - "$sha" <<'PY'
-import json,sys,urllib.request
+import json,os,sys,urllib.error,urllib.request
 base='https://api.github.com/repos/2500018036-ship-it/theaz-cloud'
+token=os.environ.pop('CLOUD_DEPLOY_GITHUB_TOKEN','')
+headers={'User-Agent':'cloud-storage-deploy','Accept':'application/vnd.github+json'}
+if token:
+ if len(token)>4096 or any(c.isspace() for c in token): raise SystemExit('Invalid deployment verification token.')
+ headers['Authorization']='Bearer '+token
 def get(path):
- req=urllib.request.Request(base+path,headers={'User-Agent':'cloud-storage-deploy','Accept':'application/vnd.github+json'})
- with urllib.request.urlopen(req,timeout=30) as r: return json.load(r)
+ req=urllib.request.Request(base+path,headers=headers)
+ try:
+  with urllib.request.urlopen(req,timeout=30) as r: return json.load(r)
+ except urllib.error.HTTPError as error:
+  raise SystemExit('GitHub production verification refused (HTTP %s); no release was changed.' % error.code) from None
 sha=sys.argv[1]
 head=get('/git/ref/heads/production')['object']['sha']
 if head != sha: raise SystemExit('Refusing stale or untrusted branch commit.')
@@ -23,6 +36,7 @@ if not any(c['name']=='verify' and c['conclusion']=='success' and c['app']['slug
  raise SystemExit('Successful GitHub Actions verification is required.')
 print('Trusted production branch and successful CI verified.')
 PY
+unset CLOUD_DEPLOY_GITHUB_TOKEN
 mkdir -p "$root/releases" "$stack"
 if [[ ! -d "$root/repository.git" ]]; then git init --bare "$root/repository.git" >/dev/null; fi
 git --git-dir="$root/repository.git" -c core.hooksPath=/dev/null fetch --no-tags "$repo" production >/dev/null
