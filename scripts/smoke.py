@@ -77,7 +77,7 @@ def main():
         result = subprocess.run(compose + ['exec', '-T', 'app'] + list(command), cwd=args.compose_dir, capture_output=True, check=True)
         return result.stdout
     fixture_path = '/tmp/cloud-smoke-' + secrets.token_hex(8) + '.json'
-    cli('php', 'spark', 'ops:smoke-fixtures', '--output=' + fixture_path)
+    cli('php', 'spark', 'ops:smoke-fixtures', '--output', fixture_path)
     fixtures = json.loads(cli('cat', fixture_path))
     try:
         anonymous = Browser(args.url)
@@ -125,9 +125,10 @@ def main():
         if args.url.startswith('https://'):
             sessions = [cookie for cookie in one.cookies if cookie.name == 'ci_session']
             assert sessions and all(cookie.secure and 'HttpOnly' in cookie._rest for cookie in sessions), 'Session cookie flags missing'
-        print('PASS: TLS/health, invite registration, CSRF, user/admin login, folder, upload, download SHA-256, user isolation, quota, session cookies')
+        transport = 'HTTPS certificate and secure cookies, ' if args.url.startswith('https://') else 'HTTP, '
+        print('PASS: ' + transport + 'health, invite registration, CSRF, user/admin login, folder, upload, download SHA-256, user isolation, quota')
     finally:
-        cli('php', 'spark', 'ops:smoke-fixtures', '--output=' + fixture_path, '--finish')
+        cli('php', 'spark', 'ops:smoke-fixtures', '--output', fixture_path, '--finish')
 
 
 if __name__ == '__main__':

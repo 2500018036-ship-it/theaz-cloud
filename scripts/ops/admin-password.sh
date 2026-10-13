@@ -7,5 +7,5 @@ printf '\n'
 read -rsp 'Confirm password: ' confirmation
 printf '\n'
 [[ "$password" == "$confirmation" ]] || { echo 'Passwords differ.' >&2; exit 1; }
-printf '%s\n' "$password" | docker compose --env-file production.env --env-file release.env exec -T app php spark ops:admin-password --email="$email"
+printf '%s\n' "$password" | docker compose --env-file production.env --env-file release.env exec -T app php spark ops:admin-password --email "$email"
 unset password confirmation
