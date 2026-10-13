@@ -1,0 +1,22 @@
+# Copy to docker/env/development.local and set the secret values locally.
+# Use with: docker compose --env-file docker/env/development.local up -d --build
+
+CI_ENVIRONMENT=development
+APP_BUILD_TARGET=development
+APP_BASE_URL=http://localhost:8080/
+APP_TIMEZONE=Asia/Jakarta
+HTTP_PORT=8080
+LOGGER_THRESHOLD=9
+
+MARIADB_DATABASE=storage_cloud
+MARIADB_USER=storage_cloud
+MARIADB_PASSWORD=
+MARIADB_ROOT_PASSWORD=
+
+AUTH_BOOTSTRAP_ADMIN_EMAIL=
+AUTH_BOOTSTRAP_ADMIN_USERNAME=
+AUTH_BOOTSTRAP_ADMIN_PASSWORD=
+
+PHP_IMAGE=php:8.2-fpm-bookworm
+NGINX_IMAGE=nginx:1.27-bookworm
+MARIADB_IMAGE=mariadb:11.4

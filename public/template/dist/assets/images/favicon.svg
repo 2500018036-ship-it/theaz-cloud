@@ -1,0 +1,16 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Theaz Cloud">
+  <defs>
+    <linearGradient id="theaz-favicon-mark" x1="7" y1="5" x2="58" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18A0FB"/>
+      <stop offset="0.55" stop-color="#0B5ED7"/>
+      <stop offset="1" stop-color="#193CB8"/>
+    </linearGradient>
+    <linearGradient id="theaz-favicon-shine" x1="15" y1="13" x2="49" y2="49" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#DDF4FF" stop-opacity="0.88"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="17" fill="url(#theaz-favicon-mark)"/>
+  <path d="M20.3 42.6h23.5c4.9 0 8.8-3.55 8.8-8.28 0-4.18-3.13-7.57-7.11-8.12C43.94 20.38 38.71 16.2 32.58 16.2c-5.35 0-9.98 3.15-12.05 7.78-5.28.42-9.34 4.38-9.34 9.34 0 5.13 4.11 9.28 9.11 9.28Z" fill="url(#theaz-favicon-shine)"/>
+  <path d="M31.8 42.15V28.37m0 0-5.28 5.28m5.28-5.28 5.28 5.28" stroke="#0B5ED7" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

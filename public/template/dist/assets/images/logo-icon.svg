@@ -1,0 +1,16 @@
+<svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Theaz Cloud icon">
+  <defs>
+    <linearGradient id="theaz-icon-mark" x1="4" y1="3" x2="34" y2="35" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18A0FB"/>
+      <stop offset="0.55" stop-color="#0B5ED7"/>
+      <stop offset="1" stop-color="#193CB8"/>
+    </linearGradient>
+    <linearGradient id="theaz-icon-shine" x1="9" y1="8" x2="29" y2="29" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#DDF4FF" stop-opacity="0.88"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="34" height="34" rx="10" fill="url(#theaz-icon-mark)"/>
+  <path d="M11.9 25.2h14.4c3 0 5.4-2.18 5.4-5.08 0-2.56-1.92-4.64-4.36-4.98C26.39 11.57 23.18 9 19.42 9c-3.28 0-6.12 1.93-7.39 4.77C8.79 14.03 6.3 16.46 6.3 19.5c0 3.15 2.52 5.7 5.6 5.7Z" fill="url(#theaz-icon-shine)"/>
+  <path d="M18.95 24.92v-8.45m0 0-3.24 3.24m3.24-3.24 3.24 3.24" stroke="#0B5ED7" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

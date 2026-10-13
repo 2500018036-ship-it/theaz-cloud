@@ -1,0 +1,128 @@
+name: storage-cloud
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: ${APP_BUILD_TARGET:-development}
+      args:
+        PHP_IMAGE: ${PHP_IMAGE:-php:8.2-fpm-bookworm}
+    restart: unless-stopped
+    environment:
+      CI_ENVIRONMENT: ${CI_ENVIRONMENT:-development}
+      TZ: ${APP_TIMEZONE:-Asia/Jakarta}
+      app_baseURL: ${APP_BASE_URL:-http://localhost:8080/}
+      app_appTimezone: ${APP_TIMEZONE:-Asia/Jakarta}
+      app_forceGlobalSecureRequests: ${APP_FORCE_HTTPS:-false}
+      cookie_secure: ${COOKIE_SECURE:-false}
+      cookie_samesite: ${COOKIE_SAMESITE:-Lax}
+      database_default_hostname: db
+      database_default_database: ${MARIADB_DATABASE:-storage_cloud}
+      database_default_username: ${MARIADB_USER:-storage_cloud}
+      database_default_password: ${MARIADB_PASSWORD:?Set MARIADB_PASSWORD in a local env file or shell}
+      database_default_DBDriver: MySQLi
+      database_default_port: 3306
+      cloudDrive_storagePath: /var/cloud-drive/storage
+      logger_threshold: ${LOGGER_THRESHOLD:-9}
+      email_fromEmail: ${SMTP_FROM_EMAIL:-}
+      email_fromName: ${SMTP_FROM_NAME:-Theaz Cloud}
+      email_protocol: smtp
+      email_SMTPHost: ${SMTP_HOST:-}
+      email_SMTPPort: ${SMTP_PORT:-587}
+      email_SMTPUser: ${SMTP_USER:-}
+      email_SMTPPass: ${SMTP_PASS:-}
+      email_SMTPCrypto: ${SMTP_CRYPTO:-tls}
+      email_SMTPTimeout: ${SMTP_TIMEOUT:-10}
+    volumes:
+      - ./:/var/www/html
+      - app_writable:/var/www/html/writable
+      - cloud_private_storage:/var/cloud-drive/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - internal
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+      args:
+        NGINX_IMAGE: ${NGINX_IMAGE:-nginx:1.27-bookworm}
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - app_writable:/var/www/html/writable:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - internal
+
+  db:
+    image: ${MARIADB_IMAGE:-mariadb:11.4}
+    restart: unless-stopped
+    environment:
+      TZ: ${APP_TIMEZONE:-Asia/Jakarta}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-storage_cloud}
+      MARIADB_USER: ${MARIADB_USER:-storage_cloud}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:?Set MARIADB_PASSWORD in a local env file or shell}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD in a local env file or shell}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mariadb-admin ping -h 127.0.0.1 -u\"$${MARIADB_USER}\" -p\"$${MARIADB_PASSWORD}\" --silent",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  app_writable:
+  cloud_private_storage:
+  db_data:

@@ -1,0 +1,127 @@
+.drive-toolbar .form-control,
+.drive-toolbar .form-select {
+  min-height: 42px;
+}
+
+.drive-item-card {
+  min-height: 188px;
+}
+
+.drive-item-name {
+  max-width: 320px;
+}
+
+.drive-grid-name {
+  min-height: 22px;
+}
+
+.drive-list-card,
+.drive-list-card .card-body {
+  overflow: visible;
+}
+
+.drive-list-card .dropdown-menu {
+  z-index: 1080;
+}
+
+.drive-action-menu .dropdown-item form,
+.drive-action-menu form {
+  margin: 0;
+}
+
+body.drive-busy {
+  cursor: progress;
+}
+
+.drive-bulk-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1050;
+  padding: 0 1rem 1rem;
+  pointer-events: none;
+}
+
+.drive-bulk-bar > .card {
+  pointer-events: auto;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.drive-item-check {
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.drive-item-card:has(.drive-item-check:checked) {
+  border-color: var(--bs-primary) !important;
+  box-shadow: 0 0 0 1px var(--bs-primary);
+}
+
+tr:has(.drive-item-check:checked) {
+  background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+
+.upload-file-item .progress-bar {
+  transition: width 0.15s ease;
+}
+
+.upload-file-item .upload-status {
+  font-size: 0.7rem;
+  min-width: 64px;
+  text-align: center;
+}
+
+#details-panel {
+  max-width: 360px;
+}
+
+#details-panel dt {
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--bs-secondary);
+}
+
+#details-panel dd {
+  font-size: 0.88rem;
+}
+
+.drive-preview-modal-content {
+  min-height: min(760px, calc(100vh - 3.5rem));
+}
+
+.drive-preview-body {
+  min-height: min(640px, calc(100vh - 9rem));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fb;
+}
+
+.drive-preview-media,
+.drive-preview-video {
+  max-width: 100%;
+  max-height: calc(100vh - 11rem);
+  object-fit: contain;
+}
+
+.drive-preview-frame {
+  width: 100%;
+  min-height: calc(100vh - 11rem);
+  border: 0;
+  background: #fff;
+}
+
+.drive-preview-text {
+  width: 100%;
+  min-height: calc(100vh - 11rem);
+  max-height: calc(100vh - 11rem);
+  overflow: auto;
+  margin: 0;
+  padding: 1rem;
+  background: #fff;
+  color: #1f2937;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

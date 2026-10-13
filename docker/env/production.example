@@ -1,0 +1,34 @@
+# Copy to docker/env/production.local and set the secret values locally.
+# Use with: docker compose --env-file docker/env/production.local up -d --build
+
+CI_ENVIRONMENT=production
+APP_BUILD_TARGET=production
+APP_BASE_URL=https://cloud.example.test/
+APP_TIMEZONE=Asia/Jakarta
+APP_FORCE_HTTPS=false
+COOKIE_SECURE=true
+COOKIE_SAMESITE=Lax
+HTTP_PORT=8080
+LOGGER_THRESHOLD=4
+
+MARIADB_DATABASE=storage_cloud
+MARIADB_USER=storage_cloud
+MARIADB_PASSWORD=
+MARIADB_ROOT_PASSWORD=
+
+AUTH_BOOTSTRAP_ADMIN_EMAIL=
+AUTH_BOOTSTRAP_ADMIN_USERNAME=
+AUTH_BOOTSTRAP_ADMIN_PASSWORD=
+
+SMTP_FROM_EMAIL=
+SMTP_FROM_NAME=Theaz Cloud
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+SMTP_CRYPTO=tls
+SMTP_TIMEOUT=10
+
+PHP_IMAGE=php:8.2-fpm-bookworm
+NGINX_IMAGE=nginx:1.27-bookworm
+MARIADB_IMAGE=mariadb:11.4
