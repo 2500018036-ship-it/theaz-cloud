@@ -13,6 +13,7 @@ services:
       CI_ENVIRONMENT: ${CI_ENVIRONMENT:-development}
       TZ: ${APP_TIMEZONE:-Asia/Jakarta}
       app_baseURL: ${APP_BASE_URL:-http://localhost:8080/}
+      app_indexPage: ""
       app_appTimezone: ${APP_TIMEZONE:-Asia/Jakarta}
       app_forceGlobalSecureRequests: ${APP_FORCE_HTTPS:-false}
       cookie_secure: ${COOKIE_SECURE:-false}
@@ -23,7 +24,7 @@ services:
       database_default_password: ${MARIADB_PASSWORD:?Set MARIADB_PASSWORD in a local env file or shell}
       database_default_DBDriver: MySQLi
       database_default_port: 3306
-      cloudDrive_storagePath: /var/cloud-drive/storage
+      clouddrive_storagePath: /var/cloud-drive/storage
       logger_threshold: ${LOGGER_THRESHOLD:-9}
       email_fromEmail: ${SMTP_FROM_EMAIL:-}
       email_fromName: ${SMTP_FROM_NAME:-Theaz Cloud}

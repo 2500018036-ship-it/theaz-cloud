@@ -20,6 +20,7 @@ services:
       CI_ENVIRONMENT: production
       TZ: Asia/Jakarta
       app_baseURL: ${APP_BASE_URL:-https://cloud.azrilachdi.web.id/}
+      app_indexPage: ""
       APP_TRUSTED_PROXIES: ${APP_TRUSTED_PROXIES:-172.18.0.2}
       app_forceGlobalSecureRequests: "false"
       cookie_secure: "true"
@@ -31,7 +32,7 @@ services:
       database_default_username: ${MARIADB_USER:-cloud_storage}
       database_default_password: ${MARIADB_PASSWORD:?Database secret required}
       database_default_DBDriver: MySQLi
-      cloudDrive_storagePath: /var/cloud-drive/storage
+      clouddrive_storagePath: /var/cloud-drive/storage
     volumes:
       - ${STORAGE_PATH:-/mnt/data/storage/cloud-storage}:/var/cloud-drive/storage
       - writable:/var/www/html/writable
