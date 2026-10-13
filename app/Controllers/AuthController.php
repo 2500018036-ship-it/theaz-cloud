@@ -107,7 +107,8 @@ class AuthController extends BaseController
         $users = new UserModel();
         $invitations = new InvitationService(db: $db);
         $settings = new SystemSettingsService($db);
-        $requiresVerification = ENVIRONMENT === 'production' || $settings->getBool('email_verification_required', false);
+        $requiresVerification = ! config(Auth::class)->emailVerificationDeferred
+            && $settings->getBool('email_verification_required', false);
 
         $verificationQueueId = null;
         $verificationSent = false;

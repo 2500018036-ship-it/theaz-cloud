@@ -1,4 +1,24 @@
-# CodeIgniter 4 Framework
+# Theaz Cloud
+
+Invite-only, multi-user cloud storage built with CodeIgniter 4, PHP-FPM, Nginx and MariaDB.
+
+Production deployment and operations: [docs/operations.md](docs/operations.md).
+
+The GitHub Actions pipeline checks PHP syntax and dependencies, tests SQLite and MariaDB,
+and verifies registration, login, folders, uploads, downloads, account isolation and quotas.
+Only the trusted `production` branch can deploy through the restricted Azure SSH gateway.
+Persistent data and server secrets are kept outside Git. Email verification is deferred during this development rollout.
+
+```bash
+composer install
+composer test
+```
+
+PHP requires intl, mbstring, fileinfo, mysqli, sqlite3, zip and GD for full functionality/tests.
+Production containers install these dependencies. `app/Config/Paths.php` loads the Composer-managed framework;
+the legacy `system/` source below is retained for history and excluded from images.
+
+## Upstream framework information
 
 ## What is CodeIgniter?
 

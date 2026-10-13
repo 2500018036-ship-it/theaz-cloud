@@ -149,9 +149,10 @@ class InvitationService
 
         $builder = $this->db->table('invitation_codes');
         $builder
+            // MySQL evaluates SET assignments left to right; use the old count for status.
+            ->set('status', new RawSql("CASE WHEN use_count + 1 >= max_uses THEN 'consumed' ELSE status END"))
             ->set('use_count', new RawSql('use_count + 1'))
             ->set('last_used_at', $now)
-            ->set('status', new RawSql("CASE WHEN use_count + 1 >= max_uses THEN 'consumed' ELSE status END"))
             ->set('updated_at', $now)
             ->where('code_hash', $hash)
             ->where('invitation_type', $type)

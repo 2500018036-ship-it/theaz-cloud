@@ -1,0 +1,8 @@
+[Unit]
+Description=Consistent Cloud Storage database and files backup
+After=docker.service
+Requires=docker.service
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/cloud-storage-backup
+UMask=0077

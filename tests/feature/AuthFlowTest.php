@@ -76,6 +76,50 @@ final class AuthFlowTest extends CIUnitTestCase
         $this->assertFalse($service->consume($code));
     }
 
+    public function testMultiUseInvitationAllowsExactlyItsConfiguredUses(): void
+    {
+        $service = new InvitationService(db: $this->db);
+        $code = $service->generatePlainCode();
+        $service->create($code, 'Two-use invite', 2);
+        $this->assertTrue($service->consume($code));
+        $this->assertTrue($service->consume($code));
+        $this->assertFalse($service->consume($code));
+    }
+
+    public function testDeferredVerificationCreatesActiveInviteOnlyUserWithoutQueuedMail(): void
+    {
+        $config = config(Auth::class);
+        $config->emailVerificationDeferred = true;
+        try {
+            $service = new InvitationService(db: $this->db);
+            $code = $service->generatePlainCode();
+            $service->create($code, 'Deferred verification');
+            $this->postAuthController('register', [
+                'invitation_code' => $code, 'username' => 'deferreduser',
+                'email' => 'deferred@example.test', 'password' => 'test-password-long',
+                'password_confirm' => 'test-password-long', 'role' => 'super_admin',
+            ])->assertRedirectTo('/login');
+            $this->seeInDatabase('users', ['username' => 'deferreduser', 'status' => 'active', 'role' => 'user']);
+            $this->dontSeeInDatabase('email_queue', ['recipient_email' => 'deferred@example.test']);
+        } finally {
+            $config->emailVerificationDeferred = false;
+        }
+    }
+
+    public function testAuthenticationDeniesAccessWhenAccountValidationCannotReachDatabase(): void
+    {
+        session()->set(['is_logged_in' => true, 'user_id' => 123]);
+        $original = $this->db->getPrefix();
+        $this->db->setPrefix('unavailable_');
+        try {
+            $result = (new AuthFilter())->before(service('request'));
+            $this->assertInstanceOf(ResponseInterface::class, $result);
+            $this->assertSame(503, $result->getStatusCode());
+        } finally {
+            $this->db->setPrefix($original);
+        }
+    }
+
     public function testUserRegistrationDataIsAlwaysUserRole(): void
     {
         $users = new UserModel();

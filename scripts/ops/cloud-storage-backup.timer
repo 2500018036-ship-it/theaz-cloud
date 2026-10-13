@@ -1,0 +1,8 @@
+[Unit]
+Description=Daily Cloud Storage backup at 02:30 Jakarta
+[Timer]
+OnCalendar=*-*-* 02:30:00 Asia/Jakarta
+Persistent=true
+RandomizedDelaySec=300
+[Install]
+WantedBy=timers.target

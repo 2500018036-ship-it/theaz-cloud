@@ -182,6 +182,17 @@ class App extends BaseConfig
      */
     public array $proxyIPs = [];
 
+    public function __construct()
+    {
+        parent::__construct();
+        foreach (explode(',', (string) env('APP_TRUSTED_PROXIES', '')) as $proxy) {
+            $proxy = trim($proxy);
+            if ($proxy !== '' && filter_var($proxy, FILTER_VALIDATE_IP)) {
+                $this->proxyIPs[$proxy] = 'X-Forwarded-For';
+            }
+        }
+    }
+
     /**
      * --------------------------------------------------------------------------
      * Content Security Policy

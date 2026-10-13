@@ -7,6 +7,7 @@ use CodeIgniter\Router\RouteCollection;
  */
 $routes->get('/', 'Home::index');
 $routes->get('health', 'HealthController::index');
+$routes->get('ready', 'HealthController::ready');
 $routes->post('language', 'LanguageController::switch');
 
 $routes->group('', ['filter' => 'guest'], static function (RouteCollection $routes): void {

@@ -1,0 +1,22 @@
+services:
+  app:
+    environment:
+      app_baseURL: http://127.0.0.1:18080/
+      cookie_secure: "false"
+  tests:
+    image: cloud-storage-test:${RELEASE_SHA}
+    build:
+      context: ${RELEASE_PATH}
+      dockerfile: docker/php/Dockerfile
+      target: test
+    environment:
+      CI_ENVIRONMENT: testing
+      database_tests_hostname: db
+      database_tests_database: ${MARIADB_DATABASE}
+      database_tests_username: ${MARIADB_USER}
+      database_tests_password: ${MARIADB_PASSWORD}
+      database_tests_DBDriver: MySQLi
+      database_tests_DBPrefix: dbtests_
+    depends_on:
+      db: {condition: service_healthy}
+    networks: [backend]

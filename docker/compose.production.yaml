@@ -1,0 +1,97 @@
+name: cloud-storage
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "10m", max-file: "3"}
+services:
+  app:
+    image: cloud-storage-app:${RELEASE_SHA:?Release required}
+    build:
+      context: ${RELEASE_PATH:?Release directory required}
+      dockerfile: docker/php/Dockerfile
+      target: production
+    init: true
+    restart: unless-stopped
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, SETUID, SETGID]
+    mem_limit: 768m
+    environment:
+      CI_ENVIRONMENT: production
+      TZ: Asia/Jakarta
+      app_baseURL: ${APP_BASE_URL:-https://cloud.azrilachdi.web.id/}
+      APP_TRUSTED_PROXIES: ${APP_TRUSTED_PROXIES:-172.18.0.2}
+      app_forceGlobalSecureRequests: "false"
+      cookie_secure: "true"
+      cookie_samesite: Lax
+      logger_threshold: "4"
+      auth_emailVerificationDeferred: ${EMAIL_VERIFICATION_DEFERRED:-true}
+      database_default_hostname: db
+      database_default_database: ${MARIADB_DATABASE:-cloud_storage}
+      database_default_username: ${MARIADB_USER:-cloud_storage}
+      database_default_password: ${MARIADB_PASSWORD:?Database secret required}
+      database_default_DBDriver: MySQLi
+      cloudDrive_storagePath: /var/cloud-drive/storage
+    volumes:
+      - ${STORAGE_PATH:-/mnt/data/storage/cloud-storage}:/var/cloud-drive/storage
+      - writable:/var/www/html/writable
+    tmpfs: ["/tmp:mode=1777,size=256m"]
+    depends_on:
+      db: {condition: service_healthy}
+    healthcheck:
+      test: [CMD-SHELL, "SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+    networks: [backend]
+    logging: *logging
+  web:
+    image: cloud-storage-web:${RELEASE_SHA:?Release required}
+    build:
+      context: ${RELEASE_PATH:?Release directory required}
+      dockerfile: docker/nginx/Dockerfile
+    restart: unless-stopped
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 128m
+    ports: ["127.0.0.1:${LOCAL_HTTP_PORT:-18080}:80"]
+    tmpfs: [/var/cache/nginx, /var/run, /tmp]
+    depends_on:
+      app: {condition: service_healthy}
+    healthcheck:
+      test: [CMD-SHELL, "curl -fsS http://127.0.0.1/ready >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+    networks:
+      backend: {}
+      proxy: {aliases: [cloud-storage-web]}
+    logging: *logging
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 768m
+    command: [--innodb-buffer-pool-size=256M, --max-connections=50]
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-cloud_storage}
+      MARIADB_USER: ${MARIADB_USER:-cloud_storage}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:?Database secret required}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Root database secret required}
+      TZ: Asia/Jakarta
+    volumes: ["${DATABASE_PATH:-/mnt/data/docker-compose/cloud-storage/data/mysql}:/var/lib/mysql"]
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    networks: [backend]
+    logging: *logging
+networks:
+  backend: {internal: true}
+  proxy: {external: true, name: web-proxy}
+volumes:
+  writable: {}

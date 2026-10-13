@@ -15,3 +15,8 @@ writable/session/*
 writable/uploads/*
 storage/private/*
 build/
+system/
+template/
+docs/
+.github/
+DEPLOYED

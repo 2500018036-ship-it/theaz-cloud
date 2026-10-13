@@ -1,0 +1,15 @@
+[Unit]
+Description=Private Cloud Storage deployment SSH tunnel to Azure
+Wants=network-online.target
+After=network-online.target
+[Service]
+User=cloud-tunnel
+ExecStart=/usr/bin/ssh -NT -i /var/lib/cloud-tunnel/azure-key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/var/lib/cloud-tunnel/known_hosts -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ConnectTimeout=10 -R 127.0.0.1:2222:127.0.0.1:22 cloud-tunnel@20.194.8.143
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+[Install]
+WantedBy=multi-user.target

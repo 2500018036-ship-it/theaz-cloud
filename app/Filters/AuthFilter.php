@@ -66,7 +66,12 @@ class AuthFilter implements FilterInterface
                 }
             }
         } catch (\Throwable) {
-            return null;
+            log_message('error', 'Authentication state could not be validated.');
+
+            return service('response')
+                ->setStatusCode(503)
+                ->setHeader('Cache-Control', 'no-store')
+                ->setBody('Authentication is temporarily unavailable. Please try again.');
         }
 
         return null;

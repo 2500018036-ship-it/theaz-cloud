@@ -1,0 +1,51 @@
+name: Cloud storage CI/CD
+on:
+  push:
+    branches: [main, production, 'deploy/**']
+  pull_request:
+    branches: [main, production]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cloud-storage-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Lint, dependency audit, SQLite and MariaDB tests, production HTTP smoke
+        run: bash scripts/ci.sh
+  deploy:
+    needs: verify
+    if: github.repository == '2500018036-ship-it/theaz-cloud' && github.ref == 'refs/heads/production' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    environment:
+      name: production
+      url: https://cloud.azrilachdi.web.id
+    steps:
+      - name: Deploy through restricted SSH gateway and WireGuard
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          key="$RUNNER_TEMP/cloud-deploy-key"
+          hosts="$RUNNER_TEMP/cloud-deploy-hosts"
+          trap 'rm -f "$key" "$hosts"' EXIT
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$hosts"
+          ssh -T -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$hosts" -o ConnectTimeout=15 "$DEPLOY_USER@$DEPLOY_HOST" "deploy $GITHUB_SHA"
+      - name: Verify public HTTPS and production pages
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-delay 5 https://cloud.azrilachdi.web.id/ready
+          curl --fail --silent --show-error https://cloud.azrilachdi.web.id/login >/dev/null

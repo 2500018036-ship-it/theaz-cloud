@@ -1,6 +1,6 @@
 {
-    "name": "codeigniter4/framework",
-    "description": "The CodeIgniter framework v4",
+    "name": "theaz/cloud-storage",
+    "description": "Invite-only self-hosted cloud storage",
     "license": "MIT",
     "type": "project",
     "homepage": "https://codeigniter.com",
@@ -13,6 +13,7 @@
         "php": "^8.2",
         "ext-intl": "*",
         "ext-mbstring": "*",
+        "codeigniter4/framework": "^4.7.5",
         "laminas/laminas-escaper": "^2.18",
         "psr/log": "^3.0"
     },
@@ -52,9 +53,10 @@
     },
     "autoload": {
         "psr-4": {
-            "CodeIgniter\\": "system/"
+            "App\\": "app/"
         },
         "exclude-from-classmap": [
+            "app/Config/",
             "**/Database/Migrations/**"
         ]
     },

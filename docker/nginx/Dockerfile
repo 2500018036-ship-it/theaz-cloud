@@ -1,4 +1,4 @@
-ARG NGINX_IMAGE=nginx:1.27-bookworm
+ARG NGINX_IMAGE=nginx:1.28-bookworm
 FROM ${NGINX_IMAGE}
 
 RUN apt-get update \
@@ -7,3 +7,4 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY public /var/www/html/public
