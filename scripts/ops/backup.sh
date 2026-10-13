@@ -13,6 +13,7 @@ backup=/mnt/data/backups/cloud-storage/$(date -u +%Y%m%dT%H%M%S)-$RANDOM
 mkdir -p "$backup"
 cd "$stack"
 compose=(docker compose --env-file production.env --env-file release.env)
+"${compose[@]}" up -d db --wait --wait-timeout 600 >/dev/null
 running=$(${compose[@]} ps --status running --services | tr '\n' ' ')
 resume() {
     if [[ " $running " == *' app '* ]]; then "${compose[@]}" start app >/dev/null; fi

@@ -87,8 +87,8 @@ services:
       test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
       interval: 10s
       timeout: 5s
-      retries: 15
-      start_period: 30s
+      retries: 60
+      start_period: 120s
     networks: [backend]
     logging: *logging
 networks:

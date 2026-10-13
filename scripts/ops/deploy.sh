@@ -42,15 +42,21 @@ fi
 previous=$(mktemp -d "$stack/previous.XXXXXXXX")
 if [[ -f "$stack/release.env" ]]; then
     cp -a "$stack/release.env" "$stack/compose.yaml" "$previous/"
+    # Initial database creation on the persistent disk can outlast a failed first deploy.
+    docker compose --env-file "$stack/production.env" --env-file "$stack/release.env" -f "$stack/compose.yaml" up -d db --wait --wait-timeout 600
     CLOUD_DEPLOY_LOCK_HELD=1 /usr/local/libexec/cloud-storage-backup
 fi
 rollback_on_error() {
     code=$?
     trap - ERR
-    if [[ -f "$previous/release.env" ]]; then
+    previous_path=$(sed -n 's/^RELEASE_PATH=//p' "$previous/release.env" 2>/dev/null || true)
+    if [[ -f "$previous/release.env" && -f "$previous_path/DEPLOYED" ]]; then
         cp -a "$previous/release.env" "$previous/compose.yaml" "$stack/"
         docker compose --env-file "$stack/production.env" --env-file "$stack/release.env" -f "$stack/compose.yaml" up -d --wait --wait-timeout 180
         echo 'Application images rolled back. Database was preserved; inspect the pre-deploy backup.' >&2
+    else
+        docker compose --env-file "$stack/production.env" --env-file "$stack/release.env" -f "$stack/compose.yaml" stop web app
+        echo 'Incomplete initial release stopped; persistent database and files were preserved.' >&2
     fi
     exit "$code"
 }
@@ -58,7 +64,7 @@ trap rollback_on_error ERR
 cp "$candidate/compose.yaml" "$candidate/release.env" "$stack/"
 cd "$stack"
 compose=(docker compose --env-file production.env --env-file release.env)
-"${compose[@]}" up -d db --wait --wait-timeout 180
+"${compose[@]}" up -d db --wait --wait-timeout 600
 "${compose[@]}" stop web app
 "${compose[@]}" run --rm --no-deps app php spark ops:migrate
 "${compose[@]}" up -d app web --wait --wait-timeout 180

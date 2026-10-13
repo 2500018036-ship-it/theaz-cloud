@@ -29,6 +29,8 @@ sudo docker compose --env-file production.env --env-file release.env exec -T app
 
 `/health` is liveness. `/ready` checks database connectivity, the migrated users table and writable persistent directories. Neither endpoint returns secrets or infrastructure details.
 
+Initial MariaDB setup on the persistent disk took about five minutes in the audited server. Deployment allows up to ten minutes for database health, including retries after an interrupted first initialization. It waits for MariaDB before backup, and the strict migration command refuses to proceed with an incomplete schema. An unsuccessful first release stops the application's web/PHP services while preserving data; automatic rollback applies only to a previously successful release.
+
 Initial super administrator: username `azril`, email `muhammad.azril.achdi@gmail.com`. Its initial password is generated privately. Set your own password in a terminal using the hidden-input script; no password goes in command arguments or chat:
 
 ```bash
