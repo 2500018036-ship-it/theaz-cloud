@@ -57,6 +57,8 @@ Promote a tested commit by merging a reviewed change into `production`. Branch p
 
 Deployment history: `/mnt/data/docker-compose/cloud-storage/deployments.log`. Images and source releases are retained for rollback. Existing image tags for a SHA are reused rather than overwritten. Root-owned dispatchers are installed manually from reviewed scripts under `scripts/ops`; ordinary application deployments do not replace them.
 
+The bare source repository retains `refs/remotes/origin/production` so later fetches negotiate existing objects and transfer only missing history. Keeping only `FETCH_HEAD` in a bare repository caused repeated full pack downloads during the audit. Fetches have a ten-minute cap and abort if throughput stays below 1 KiB/s for a minute; failure at this stage leaves the running release untouched.
+
 ## Backups and recovery
 
 The systemd timer runs daily around **02:30 Asia/Jakarta**. Backup stops only this application's web/app services briefly, leaves MariaDB running, makes a transactional SQL dump, archives user file bytes/versions and avatars, copies private Compose/environment configuration, records file hashes, and resumes the services even on failure. A deployment lock prevents a scheduled backup from racing migrations. Failed backup directories have no `COMPLETE` marker.

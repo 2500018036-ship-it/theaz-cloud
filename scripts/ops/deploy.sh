@@ -39,7 +39,7 @@ PY
 unset CLOUD_DEPLOY_GITHUB_TOKEN
 mkdir -p "$root/releases" "$stack"
 if [[ ! -d "$root/repository.git" ]]; then git init --bare "$root/repository.git" >/dev/null; fi
-git --git-dir="$root/repository.git" -c core.hooksPath=/dev/null fetch --no-tags "$repo" production >/dev/null
+timeout 600 git --git-dir="$root/repository.git" -c core.hooksPath=/dev/null -c http.lowSpeedLimit=1024 -c http.lowSpeedTime=60 fetch --no-tags "$repo" production:refs/remotes/origin/production >/dev/null
 [[ $(git --git-dir="$root/repository.git" rev-parse FETCH_HEAD) == "$sha" ]] || { echo 'Production changed; retry the newer commit.' >&2; exit 1; }
 if [[ ! -d "$release" ]]; then
     mkdir "$release"
