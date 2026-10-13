@@ -20,8 +20,12 @@ class HealthController extends BaseController
         try {
             $db = Database::connect();
             $db->query('SELECT 1');
-            if (! $db->tableExists('users') || ! is_writable(WRITEPATH . 'session')
-                || ! is_writable(config(CloudDrive::class)->storagePath)) {
+            foreach (['users', 'invitation_codes', 'drive_items', 'system_settings', 'user_profiles', 'email_queue'] as $table) {
+                if (! $db->tableExists($table)) {
+                    throw new \RuntimeException('Schema not ready.');
+                }
+            }
+            if (! is_writable(WRITEPATH . 'session') || ! is_writable(config(CloudDrive::class)->storagePath)) {
                 throw new \RuntimeException('Dependency not ready.');
             }
             return $this->response->setHeader('Cache-Control', 'no-store')->setJSON(['status' => 'ready']);

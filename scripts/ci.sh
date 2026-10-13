@@ -18,8 +18,9 @@ trap cleanup EXIT
 "${compose[@]}" build app web tests
 docker run --rm --entrypoint sh "cloud-storage-test:$RELEASE_SHA" -c 'find app tests -type f -name "*.php" -print0 | xargs -0 -n1 php -l >/dev/null && composer validate --strict --no-check-publish && composer audit && php vendor/bin/phpunit --no-coverage'
 "${compose[@]}" up -d db --wait --wait-timeout 180
+"${compose[@]}" exec -T db sh -c 'MYSQL_PWD="$MARIADB_ROOT_PASSWORD" mariadb -u root -e "CREATE DATABASE cloud_storage_tests; GRANT ALL ON cloud_storage_tests.* TO '\''cloud_storage'\''@'\''%'\'';"'
 "${compose[@]}" run --rm tests php vendor/bin/phpunit --no-coverage
-"${compose[@]}" run --rm --no-deps app php spark migrate --all
+"${compose[@]}" run --rm --no-deps app php spark ops:migrate
 "${compose[@]}" up -d app web --wait --wait-timeout 180
 python3 scripts/smoke.py --url http://127.0.0.1:18080 --compose-dir "$PWD" --file docker/compose.production.yaml --overlay docker/compose.ci.yaml --project "${CI_PROJECT:-cloud-storage-ci}"
 echo 'All CI checks passed.'

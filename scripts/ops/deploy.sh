@@ -60,7 +60,7 @@ cd "$stack"
 compose=(docker compose --env-file production.env --env-file release.env)
 "${compose[@]}" up -d db --wait --wait-timeout 180
 "${compose[@]}" stop web app
-"${compose[@]}" run --rm --no-deps app php spark migrate --all
+"${compose[@]}" run --rm --no-deps app php spark ops:migrate
 "${compose[@]}" up -d app web --wait --wait-timeout 180
 curl -fsS --retry 5 --retry-delay 3 http://127.0.0.1:18080/ready >/dev/null
 touch "$release/DEPLOYED"

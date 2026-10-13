@@ -12,7 +12,7 @@ services:
     environment:
       CI_ENVIRONMENT: testing
       database_tests_hostname: db
-      database_tests_database: ${MARIADB_DATABASE}
+      database_tests_database: cloud_storage_tests
       database_tests_username: ${MARIADB_USER}
       database_tests_password: ${MARIADB_PASSWORD}
       database_tests_DBDriver: MySQLi

@@ -40,6 +40,7 @@ class Filters extends BaseFilters
         'auth'          => AuthFilter::class,
         'admin'         => AdminFilter::class,
         'guest'         => GuestFilter::class,
+        'privateinput'  => \App\Filters\PrivateInputFilter::class,
     ];
 
     /**
@@ -85,6 +86,7 @@ class Filters extends BaseFilters
         'after' => [
             // 'honeypot',
             // 'secureheaders',
+            'privateinput',
         ],
     ];
 
