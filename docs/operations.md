@@ -74,7 +74,7 @@ Verify a completed backup without touching production:
 sudo /usr/local/libexec/cloud-storage-restore-check /mnt/data/backups/cloud-storage/<completed-backup>
 ```
 
-This checks archive hashes, restores SQL into a new isolated MariaDB container with no network, restores file archives into a new directory, and verifies every stored file's SHA-256. The test container is stopped and evidence retained. It never imports into production or overwrites production files. Remove only explicitly reviewed restore-test artifacts after inspection.
+This checks archive hashes, waits up to ten minutes for the isolated database to initialize on the persistent disk, restores SQL into a new MariaDB container with no network, restores file archives into a new directory, and verifies every stored file's SHA-256. SQL is imported only after database readiness succeeds. The test container is stopped and evidence retained. It never imports into production or overwrites production files. Remove only explicitly reviewed restore-test artifacts after inspection.
 
 Application rollback:
 

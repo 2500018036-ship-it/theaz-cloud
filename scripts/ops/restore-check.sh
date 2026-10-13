@@ -12,10 +12,12 @@ printf 'MARIADB_ROOT_PASSWORD=%s\nMARIADB_DATABASE=restore_check\n' "$password" 
 unset password
 docker run -d --name "$container" --network none --env-file "$scratch/restore.env" -v "$scratch/database:/var/lib/mysql" mariadb:11.4 >/dev/null
 trap 'docker stop "$container" >/dev/null' EXIT
-for attempt in {1..60}; do
-    if docker exec "$container" healthcheck.sh --connect --innodb_initialized >/dev/null 2>&1; then break; fi
+ready=0
+for attempt in {1..300}; do
+    if docker exec "$container" healthcheck.sh --connect --innodb_initialized >/dev/null 2>&1; then ready=1; break; fi
     sleep 2
 done
+[[ "$ready" == 1 ]] || { echo 'Isolated restore database did not become ready within ten minutes.' >&2; exit 1; }
 docker exec -i "$container" sh -c 'MYSQL_PWD="$MARIADB_ROOT_PASSWORD" exec mariadb -u root restore_check' < "$backup/database.sql"
 docker exec "$container" sh -c 'MYSQL_PWD="$MARIADB_ROOT_PASSWORD" exec mariadb -u root --batch --skip-column-names restore_check -e "SELECT COUNT(*) AS users FROM users; SELECT COUNT(*) AS items FROM drive_items;"'
 mkdir "$scratch/files" "$scratch/writable"
