@@ -37,7 +37,7 @@ $fileIcon = \App\Libraries\FileIcon::forItem($item);
   <div class="col-lg-4">
     <div class="card">
       <div class="card-header">
-        <h5 class="mb-0">Current File</h5>
+        <h5 class="mb-0"><?= esc(lang('UI.tc5617ee2f63a')) ?></h5>
       </div>
       <div class="card-body">
         <div class="d-flex align-items-start gap-3">
@@ -52,10 +52,10 @@ $fileIcon = \App\Libraries\FileIcon::forItem($item);
         </div>
         <div class="d-flex flex-wrap gap-2 mt-3">
           <a href="<?= site_url('drive/items/' . (int) $item['id'] . '/download') ?>" class="btn btn-sm btn-light-primary">
-            <i class="ti ti-download me-1"></i>Download
+            <i class="ti ti-download me-1"></i><?= esc(lang('UI.td6eafe823591')) ?>
           </a>
           <a href="<?= site_url('drive') ?>" class="btn btn-sm btn-light-secondary">
-            <i class="ti ti-arrow-left me-1"></i>Drive
+            <i class="ti ti-arrow-left me-1"></i><?= esc(lang('UI.t6312b4b9baf1')) ?>
           </a>
         </div>
       </div>
@@ -64,17 +64,17 @@ $fileIcon = \App\Libraries\FileIcon::forItem($item);
     <?php if ($canManage): ?>
       <div class="card">
         <div class="card-header">
-          <h5 class="mb-0">Upload New Version</h5>
+          <h5 class="mb-0"><?= esc(lang('UI.tf4a0065c59c0')) ?></h5>
         </div>
         <div class="card-body">
           <form action="<?= esc($basePath) ?>" method="post" enctype="multipart/form-data">
             <?= csrf_field() ?>
             <div class="mb-3">
               <input type="file" name="file" class="form-control" required>
-              <div class="form-text">The replacement must use the same extension as the current file.</div>
+              <div class="form-text"><?= esc(lang('UI.t50cccb6474fc')) ?></div>
             </div>
             <button type="submit" class="btn btn-primary">
-              <i class="ti ti-upload me-1"></i>Upload Version
+              <i class="ti ti-upload me-1"></i><?= esc(lang('UI.tf1a97c9b45b2')) ?>
             </button>
           </form>
         </div>
@@ -86,8 +86,8 @@ $fileIcon = \App\Libraries\FileIcon::forItem($item);
     <div class="card">
       <div class="card-header d-flex flex-wrap gap-2 align-items-center justify-content-between">
         <div>
-          <h5 class="mb-1">Version History</h5>
-          <p class="text-muted mb-0">Only content changes create versions. Rename and metadata-only changes are not versioned.</p>
+          <h5 class="mb-1"><?= esc(lang('UI.t2eba52c01705')) ?></h5>
+          <p class="text-muted mb-0"><?= esc(lang('UI.tc4787533df4e')) ?></p>
         </div>
         <span class="badge bg-light-secondary"><?= esc((string) $pager['total']) ?></span>
       </div>
@@ -95,19 +95,19 @@ $fileIcon = \App\Libraries\FileIcon::forItem($item);
         <?php if ($versions === []): ?>
           <?= view('components/ui/empty_state', [
               'icon' => 'ti ti-history',
-              'title' => 'No previous versions',
-              'message' => 'Upload a replacement file to start retaining version history.',
+              'title' => lang('UI.t94f7594f716f'),
+              'message' => lang('UI.t7cb5d6d8fa8f'),
           ]) ?>
         <?php else: ?>
           <div class="table-responsive">
             <table class="table align-middle">
               <thead>
                 <tr>
-                  <th>Version</th>
-                  <th>Size</th>
-                  <th>Created</th>
-                  <th>Changed by</th>
-                  <th class="text-end">Action</th>
+                  <th><?= esc(lang('UI.tdd167905de0d')) ?></th>
+                  <th><?= esc(lang('UI.t1af851907331')) ?></th>
+                  <th><?= esc(lang('UI.td70b9e24bca2')) ?></th>
+                  <th><?= esc(lang('UI.tb1a75baafbfa')) ?></th>
+                  <th class="text-end"><?= esc(lang('UI.t64cff1319d2f')) ?></th>
                 </tr>
               </thead>
               <tbody>
@@ -125,11 +125,11 @@ $fileIcon = \App\Libraries\FileIcon::forItem($item);
                         <form action="<?= site_url('drive/items/' . (int) $item['id'] . '/versions/' . (int) $version['id'] . '/restore') ?>" method="post" class="d-inline">
                           <?= csrf_field() ?>
                           <button type="submit" class="btn btn-sm btn-light-primary">
-                            <i class="ti ti-rotate-clockwise me-1"></i>Restore
+                            <i class="ti ti-rotate-clockwise me-1"></i><?= esc(lang('UI.ta76e13b98392')) ?>
                           </button>
                         </form>
                       <?php else: ?>
-                        <span class="text-muted small">Viewer</span>
+                        <span class="text-muted small"><?= esc(lang('UI.t678bfa6af48b')) ?></span>
                       <?php endif; ?>
                     </td>
                   </tr>
@@ -140,7 +140,7 @@ $fileIcon = \App\Libraries\FileIcon::forItem($item);
         <?php endif; ?>
       </div>
       <div class="card-footer d-flex flex-wrap gap-2 align-items-center justify-content-between">
-        <span class="text-muted small"><?= esc((string) $pager['total']) ?> previous version(s)</span>
+        <span class="text-muted small"><?= esc((string) $pager['total']) ?> <?= esc(lang('UI.t0c63da471e98')) ?></span>
         <?php if ((int) $pager['totalPages'] > 1): ?>
           <ul class="pagination mb-0">
             <?php for ($page = 1; $page <= (int) $pager['totalPages']; $page++): ?>

@@ -16,8 +16,12 @@ services:
     cap_drop: [ALL]
     cap_add: [CHOWN, DAC_OVERRIDE, SETUID, SETGID]
     mem_limit: 768m
+    env_file:
+      - path: ${APP_SECRETS_ENV_FILE:-/mnt/data/docker-compose/cloud-storage/.env}
+        required: false
     environment:
       CI_ENVIRONMENT: production
+      RELEASE_SHA: ${RELEASE_SHA:?Release required}
       TZ: Asia/Jakarta
       app_baseURL: ${APP_BASE_URL:-https://cloud.azrilachdi.web.id/}
       app_indexPage: ""
@@ -26,7 +30,7 @@ services:
       cookie_secure: "true"
       cookie_samesite: Lax
       logger_threshold: "4"
-      auth_emailVerificationDeferred: ${EMAIL_VERIFICATION_DEFERRED:-true}
+      auth_emailVerificationDeferred: ${EMAIL_VERIFICATION_DEFERRED:-false}
       database_default_hostname: db
       database_default_database: ${MARIADB_DATABASE:-cloud_storage}
       database_default_username: ${MARIADB_USER:-cloud_storage}
@@ -45,8 +49,18 @@ services:
       timeout: 5s
       retries: 8
       start_period: 20s
-    networks: [backend]
+    networks: [backend, mail_egress]
     logging: *logging
+  mail_worker:
+    extends: {service: app}
+    mem_limit: 192m
+    command: [sh, /var/www/html/scripts/email-worker.sh]
+    healthcheck:
+      test: [CMD-SHELL, "test -f /tmp/email-worker-heartbeat && test $$(($$(date +%s)-$$(stat -c %Y /tmp/email-worker-heartbeat))) -lt 180"]
+      interval: 30s
+      timeout: 5s
+      retries: 6
+      start_period: 120s
   web:
     image: cloud-storage-web:${RELEASE_SHA:?Release required}
     build:
@@ -93,6 +107,7 @@ services:
     logging: *logging
 networks:
   backend: {internal: true}
+  mail_egress: {}
   proxy: {external: true, name: web-proxy}
 volumes:
   writable: {}

@@ -66,7 +66,7 @@ rollback_on_error() {
     previous_path=$(sed -n 's/^RELEASE_PATH=//p' "$previous/release.env" 2>/dev/null || true)
     if [[ -f "$previous/release.env" && -f "$previous_path/DEPLOYED" ]]; then
         cp -a "$previous/release.env" "$previous/compose.yaml" "$stack/"
-        docker compose --env-file "$stack/production.env" --env-file "$stack/release.env" -f "$stack/compose.yaml" up -d --wait --wait-timeout 180
+        docker compose --env-file "$stack/production.env" --env-file "$stack/release.env" -f "$stack/compose.yaml" up -d --remove-orphans --wait --wait-timeout 180
         echo 'Application images rolled back. Database was preserved; inspect the pre-deploy backup.' >&2
     else
         docker compose --env-file "$stack/production.env" --env-file "$stack/release.env" -f "$stack/compose.yaml" stop web app
@@ -80,8 +80,9 @@ cd "$stack"
 compose=(docker compose --env-file production.env --env-file release.env)
 "${compose[@]}" up -d db --wait --wait-timeout 600
 "${compose[@]}" stop web app
+if "${compose[@]}" config --services | grep -qx mail_worker; then "${compose[@]}" stop mail_worker; fi
 "${compose[@]}" run --rm --no-deps app php spark ops:migrate
-"${compose[@]}" up -d app web --wait --wait-timeout 180
+"${compose[@]}" up -d app web mail_worker --wait --wait-timeout 180
 curl -fsS --retry 5 --retry-delay 3 http://127.0.0.1:18080/ready >/dev/null
 touch "$release/DEPLOYED"
 ln -sfn "$release" "$root/current"

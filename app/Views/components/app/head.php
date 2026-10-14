@@ -1,5 +1,6 @@
 <?php
 $assetBase = base_url('template/dist/assets');
+$assetVersion = substr((string) env('RELEASE_SHA', 'development'), 0, 12);
 $pageTitle = $title ?? $pageTitle ?? 'Theaz Cloud';
 $locale = (string) (session('locale') ?? service('request')->getLocale() ?? 'en');
 $locale = in_array($locale, ['en', 'id'], true) ? $locale : 'en';
@@ -16,10 +17,9 @@ $locale = in_array($locale, ['en', 'id'], true) ? $locale : 'en';
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" id="main-font-link">
   <link rel="stylesheet" href="<?= $assetBase ?>/fonts/tabler-icons.min.css">
   <link rel="stylesheet" href="<?= $assetBase ?>/fonts/feather.css">
-  <link rel="stylesheet" href="<?= $assetBase ?>/fonts/fontawesome.css">
-  <link rel="stylesheet" href="<?= $assetBase ?>/fonts/material.css">
   <link rel="stylesheet" href="<?= $assetBase ?>/css/style.css" id="main-style-link">
   <link rel="stylesheet" href="<?= $assetBase ?>/css/style-preset.css">
-  <link rel="stylesheet" href="<?= base_url('assets/css/drive-ui.css') ?>">
+  <link rel="stylesheet" href="<?= base_url('assets/css/drive-ui.css') ?>?v=<?= esc($assetVersion) ?>">
+<link rel="stylesheet" href="<?= base_url('assets/css/app-ui.css') ?>?v=<?= esc($assetVersion) ?>">
   <?= $this->renderSection('pageStyles') ?>
 </head>

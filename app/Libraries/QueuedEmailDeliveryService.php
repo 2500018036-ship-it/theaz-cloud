@@ -69,6 +69,9 @@ class QueuedEmailDeliveryService
         $limit = max(1, min($limit, 100));
         $maxAttempts = max(1, min($maxAttempts, 10));
         $now = Time::now()->toDateTimeString();
+        // Recover work after a worker crash, without immediately retrying an in-flight send.
+        $this->queue->builder()->where('status', 'processing')->where('available_at <', $now)
+            ->update(['status' => 'queued']);
         $rows = $this->queue
             ->where('status', 'queued')
             ->where('available_at <=', $now)
@@ -100,6 +103,18 @@ class QueuedEmailDeliveryService
     {
         $attempts = (int) ($row['attempts'] ?? 0) + 1;
         $id = (int) $row['id'];
+
+        if (preg_match('/@(?:[^@]+\.)?(test|invalid|localhost)$/i', (string) $row['recipient_email'])) {
+            $this->queue->update($id, ['status' => 'cancelled', 'last_error' => 'Reserved test recipient.']);
+            return ['sent' => false, 'id' => $id, 'error' => null, 'skipped' => true];
+        }
+
+        $this->queue->builder()->where('id', $id)->where('status', 'queued')
+            ->where('available_at <=', Time::now()->toDateTimeString())
+            ->update(['status' => 'processing', 'available_at' => Time::now()->addMinutes(10)->toDateTimeString()]);
+        if ($this->queue->affectedRows() !== 1) {
+            return ['sent' => false, 'id' => $id, 'error' => null, 'skipped' => true];
+        }
 
         try {
             $email = service('email');

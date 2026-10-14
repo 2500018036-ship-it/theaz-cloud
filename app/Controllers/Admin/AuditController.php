@@ -26,8 +26,8 @@ class AuditController extends BaseController
             'pageTitle'   => 'Audit Log',
             'activeMenu'  => 'admin.audit',
             'breadcrumbs' => [
-                ['label' => 'Administration'],
-                ['label' => 'Audit Log'],
+                ['label' => lang('UI.t4b42c6690ebe')],
+                ['label' => lang('UI.t47751f88edff')],
             ],
             'currentUser' => $this->currentUser(),
             'logs'        => $result['items'],
@@ -48,9 +48,9 @@ class AuditController extends BaseController
             (new AdminAuthorization())->requirePermission($userId, 'activity_logs.manage');
             (new ActivityLogger())->deleteById($userId, $id);
 
-            return redirect()->back()->with('message', 'Activity log entry deleted.');
+            return redirect()->to('/admin/audit')->with('message', 'Activity log entry deleted.');
         } catch (\Throwable $exception) {
-            return redirect()->back()->with('error', $exception->getMessage());
+            return redirect()->to('/admin/audit')->with('error', $exception->getMessage());
         }
     }
 
@@ -62,12 +62,12 @@ class AuditController extends BaseController
             $deleted = (new ActivityLogger())->clearAll($userId);
 
             if ($deleted === 0) {
-                return redirect()->back()->with('message', 'No activity logs to clear.');
+                return redirect()->to('/admin/audit')->with('message', 'No activity logs to clear.');
             }
 
             return redirect()->to(site_url('admin/audit'))->with('message', 'Activity logs cleared.');
         } catch (\Throwable $exception) {
-            return redirect()->back()->with('error', $exception->getMessage());
+            return redirect()->to('/admin/audit')->with('error', $exception->getMessage());
         }
     }
 

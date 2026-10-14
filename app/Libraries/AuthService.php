@@ -31,6 +31,10 @@ class AuthService
             return ['ok' => false, 'reason' => 'inactive_account', 'user' => $user];
         }
 
+        if ((new EmailVerificationService())->requiresVerification($user)) {
+            return ['ok' => false, 'reason' => 'email_unverified', 'user' => $user];
+        }
+
         if (! in_array($user['role'], config(Auth::class)->roles, true)) {
             return ['ok' => false, 'reason' => 'invalid_role', 'user' => $user];
         }

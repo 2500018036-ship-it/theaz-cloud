@@ -1,5 +1,14 @@
 (function () {
   'use strict';
+  function t(text) { return window.CloudApp ? window.CloudApp.t(text) : text; }
+
+  function timedFetch(target, options) {
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, 30000);
+    return window.fetch(target, Object.assign({}, options || {}, { signal: controller.signal }))
+      .then(function (response) { window.CloudApp?.token(response.headers.get('X-CSRF-TOKEN')); return response; })
+      .finally(function () { clearTimeout(timer); });
+  }
 
   var parser = new DOMParser();
 
@@ -139,9 +148,10 @@
   }
 
   function navigateTo(targetUrl, pushState) {
+    if (window.CloudApp) return window.CloudApp.navigate(targetUrl, pushState);
     setBusy(true);
 
-    return fetch(targetUrl, {
+    return timedFetch(targetUrl, {
       credentials: 'same-origin',
       headers: {
         'X-Requested-With': 'XMLHttpRequest'
@@ -176,7 +186,7 @@
     setFormBusy(form, true);
     setBusy(true);
 
-    return fetch(actionUrl.toString(), {
+    return timedFetch(actionUrl.toString(), {
       method: 'POST',
       body: new FormData(form),
       credentials: 'same-origin',
@@ -417,6 +427,7 @@
   }
 
   function showPreviewError(message) {
+    message = t(message);
     clearPreviewModal();
     setPreviewLoading(false);
     var error = document.getElementById('drive-preview-error');
@@ -479,7 +490,7 @@
     }
 
     if (item.preview_kind === 'text') {
-      fetch(item.text_url, {
+      timedFetch(item.text_url, {
         credentials: 'same-origin',
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
       })
@@ -529,7 +540,7 @@
       new bootstrap.Modal(modalElement).show();
     }
 
-    fetch(infoUrl.toString(), {
+    timedFetch(infoUrl.toString(), {
       credentials: 'same-origin',
       headers: { 'X-Requested-With': 'XMLHttpRequest' }
     })
@@ -646,7 +657,7 @@
       var save = document.createElement('button');
       save.type = 'submit';
       save.className = 'btn btn-sm btn-light-primary';
-      save.textContent = 'Save';
+      save.textContent = t('Save');
       updateForm.appendChild(save);
 
       var revokeForm = document.createElement('form');
@@ -660,7 +671,7 @@
       var revoke = document.createElement('button');
       revoke.type = 'submit';
       revoke.className = 'btn btn-sm btn-light-danger';
-      revoke.textContent = 'Revoke';
+      revoke.textContent = t('Revoke');
       revokeForm.appendChild(revoke);
 
       controls.appendChild(updateForm);
@@ -729,6 +740,7 @@
       return;
     }
 
+    if (window.CloudApp) return;
     var link = event.target.closest('a[href]');
     if (!link || link.classList.contains('disabled')) {
       return;
@@ -757,6 +769,7 @@
   });
 
   document.addEventListener('submit', function (event) {
+    if (window.CloudApp) return;
     var form = event.target;
     if (!form || form.tagName !== 'FORM') {
       return;
@@ -785,12 +798,14 @@
   });
 
   window.addEventListener('popstate', function () {
+    if (window.CloudApp) return;
     var targetUrl = urlFor(window.location.href);
     if (isDriveUrl(targetUrl)) {
       navigateTo(targetUrl.toString(), false);
     }
   });
 
+  window.cloudDriveInit = initDrivePage;
   window.driveNavigate = navigateTo;
   window.driveRefresh = function () {
     return navigateTo(window.location.href.split('#')[0], false);

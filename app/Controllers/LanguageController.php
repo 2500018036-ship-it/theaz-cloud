@@ -33,11 +33,15 @@ class LanguageController extends BaseController
 
         $message = lang('App.flash.languageUpdated', [], $locale);
         $returnTo = (string) $this->request->getPost('return_to');
+        $indexPage = trim((string) config(\Config\App::class)->indexPage, '/');
+        if ($indexPage !== '') {
+            $returnTo = preg_replace('~^(?:/' . preg_quote($indexPage, '~') . ')+(?=/|\?|$)~', '', $returnTo);
+        }
         if ($this->isSafeReturnPath($returnTo)) {
             return redirect()->to($returnTo)->with('message', $message);
         }
 
-        return redirect()->back()->with('message', $message);
+        return redirect()->to(session('is_logged_in') ? '/dashboard' : '/login')->with('message', $message);
     }
 
     private function isSafeReturnPath(string $path): bool
@@ -45,6 +49,8 @@ class LanguageController extends BaseController
         return $path !== ''
             && str_starts_with($path, '/')
             && ! str_starts_with($path, '//')
+            && ! preg_match('~/(avatar|download|preview|thumbnail)(/|$)~i', $path)
+            && ! str_contains($path, '\\')
             && ! preg_match('/[\r\n]/', $path);
     }
 }

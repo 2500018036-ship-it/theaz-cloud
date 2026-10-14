@@ -30,7 +30,7 @@ class SettingsController extends BaseController
             'isAdminAccount' => $isAdminAccount,
             'breadcrumbs' => [
                 ['label' => $isAdminAccount ? 'Administration' : 'Workspace', 'url' => $isAdminAccount ? site_url('admin/dashboard') : site_url('dashboard')],
-                ['label' => 'My Account Settings'],
+                ['label' => lang('UI.tbb537f77cb3e')],
             ],
             'currentUser' => $this->currentUser(),
             'user'        => $data['user'],
@@ -137,7 +137,7 @@ class SettingsController extends BaseController
     {
         $file = $this->settings->avatarFile($this->currentUserId());
         if ($file === null) {
-            return $this->response->setStatusCode(404)->setBody('');
+            return $this->response->setContentType('image/svg+xml')->setHeader('Cache-Control', 'private, max-age=300')->setBody('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#e9eef5"/><circle cx="40" cy="30" r="14" fill="#8898aa"/><path d="M15 72a25 25 0 0 1 50 0" fill="#8898aa"/></svg>');
         }
 
         $this->response->setHeader('X-Content-Type-Options', 'nosniff');

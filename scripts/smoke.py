@@ -12,6 +12,11 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+def session_cookie(client, value):
+    host = urllib.parse.urlsplit(client.base).hostname
+    client.cookies.set_cookie(http.cookiejar.Cookie(0, 'ci_session', value, None, False, host, False, False, '/', True,
+        client.base.startswith('https:'), None, True, None, None, {}, False))
+
 
 class Browser:
     def __init__(self, base, timeout=180):
@@ -35,6 +40,9 @@ class Browser:
         except TimeoutError:
             method = 'POST' if data is not None else 'GET'
             raise RuntimeError('%s %s timed out after %s seconds.' % (method, path.split('?')[0], self.timeout)) from None
+        except urllib.error.URLError as error:
+            safe_path = re.sub(r'/verify/[^/]+', '/verify/[redacted]', path.split('?')[0])
+            raise RuntimeError('HTTP connection failed at %s (%s).' % (safe_path, type(error.reason).__name__)) from None
 
     def post(self, path, values, token_path=None):
         body = self.request(token_path or path)[1].decode()
@@ -101,15 +109,33 @@ def main():
             invalid = client.post('/register', {'invitation_code': 'INVALID-CODE-0000', 'username': fixture['username'], 'email': fixture['email'], 'password': fixture['password'], 'password_confirm': fixture['password']})
             assert b'Invitation code is invalid' in invalid[1], 'Invalid invite accepted'
             registered = client.post('/register', {'invitation_code': fixture['invite'], 'username': fixture['username'], 'email': fixture['email'], 'password': fixture['password'], 'password_confirm': fixture['password'], 'role': 'super_admin'})
-            assert b'Account created' in registered[1], 'Invite registration failed'
+            assert b'Account created' in registered[1] or b'Registration successful' in registered[1], 'Invite registration failed'
+            if b'Registration successful' in registered[1]:
+                assert fixture['email'].encode() in registered[1], 'Registration notice omitted the registered email'
+                blocked = client.post('/login', {'identifier': fixture['username'], 'password': fixture['password']})
+                assert '/admin/dashboard' not in blocked[3] and '/dashboard' not in blocked[3], 'Unverified user obtained a session'
+                cli('php', 'spark', 'ops:smoke-fixtures', '--output', fixture_path, '--tokens')
+                updated = json.loads(cli('cat', fixture_path))
+                pending = next(v for v in updated['users'] if v['username'] == fixture['username'])
+                verified = client.request('/email/verify/' + pending['verification_token'])
+                assert '/login' in verified[3] and b'Email verified' in verified[1], 'Email verification failed'
+                used = client.request('/email/verify/' + pending['verification_token'])
+                assert b'invalid' in used[1] or b'expired' in used[1], 'Verification token was reused'
             logged = client.post('/login', {'identifier': fixture['username'], 'password': fixture['password']})
             assert '/dashboard' in logged[3] or '/drive' in logged[3], 'User login failed'
             assert client.request('/admin/dashboard')[0] == 403, 'User obtained administrator access'
             clients.append(client)
         one, two = clients
         admin = Browser(args.url, args.request_timeout)
-        logged = admin.post('/login', {'identifier': fixtures['admin']['username'], 'password': fixtures['admin']['password']})
-        assert '/admin/dashboard' in logged[3] and logged[0] == 200, 'Admin dashboard/login failed'
+        if fixtures['admin']['password']:
+            logged = admin.post('/login', {'identifier': fixtures['admin']['username'], 'password': fixtures['admin']['password']})
+            assert '/admin/dashboard' in logged[3] and logged[0] == 200, 'Admin dashboard/login failed'
+        else:
+            session_cookie(admin, fixtures['admin']['session'])
+            assert admin.request('/admin/dashboard')[0] == 200, 'Existing primary administrator session failed'
+        assert admin.request('/admin/management')[0] == 404, 'Admin Management is still exposed'
+        denied_owner = admin.post('/admin/users/0/role', {'role': 'user'}, '/admin/users')
+        assert denied_owner[0] == 404, 'Role management route remains accessible'
         folder = one.post('/drive/folders', {'name': 'Deployment smoke folder'}, '/drive')
         assert b'Deployment smoke folder' in folder[1], 'Folder creation failed'
         payload = b'Theaz Cloud HTTPS upload/download integrity test.\n'

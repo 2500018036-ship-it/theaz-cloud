@@ -1,5 +1,6 @@
 (function () {
   'use strict';
+  function t(text) { return window.CloudApp ? window.CloudApp.t(text) : text; }
 
   var CHUNK_SIZE = 2 * 1024 * 1024; // Must match Config\CloudDrive::chunkSizeBytes
 
@@ -31,7 +32,10 @@
   }
 
   function postJSON(url, formData) {
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, 600000);
     return fetch(url, {
+      signal: controller.signal,
       method: 'POST',
       body: formData,
       credentials: 'same-origin',
@@ -42,7 +46,7 @@
         if (!data.success) throw new Error(data.error || 'Request failed');
         return data;
       });
-    });
+    }).finally(function () { clearTimeout(timer); });
   }
 
   function appendCSRF(fd) {
@@ -65,7 +69,7 @@
     var badge = el.querySelector('.upload-status');
     if (!badge) return;
     badge.className = 'badge upload-status ' + (statusClasses[status] || 'bg-light-secondary');
-    badge.textContent = statusLabels[status] || status;
+    badge.textContent = t(statusLabels[status] || status);
     if (detail) badge.title = detail;
   }
 
@@ -93,6 +97,7 @@
     setStatus(el, 'uploading');
     toggleBtn(el, '.upload-cancel', true);
 
+    xhr.timeout = 600000;
     xhr.open('POST', window.driveBaseUrl + '/drive/upload');
     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
     xhr.withCredentials = true;
@@ -103,7 +108,10 @@
 
     xhr.addEventListener('load', function () {
       toggleBtn(el, '.upload-cancel', false);
-      if (xhr.status >= 200 && xhr.status < 400) {
+      var resultDocument = new DOMParser().parseFromString(xhr.responseText, 'text/html');
+      window.CloudApp?.token(xhr.getResponseHeader('X-CSRF-TOKEN'));
+      var failed = resultDocument.querySelector('.alert-danger') || /\/login\/?$/.test(new URL(xhr.responseURL || window.location.href).pathname);
+      if (xhr.status >= 200 && xhr.status < 400 && !failed) {
         setStatus(el, 'completed');
         setProgress(el, 100);
         // Try to extract CSRF from HTML response
@@ -126,6 +134,7 @@
       onDone();
     });
 
+    xhr.addEventListener('timeout', function () { toggleBtn(el, '.upload-cancel', false); setStatus(el, 'failed', t('The request timed out. Please try again.')); toggleBtn(el, '.upload-retry', true); onDone(); });
     xhr.addEventListener('abort', function () {
       setStatus(el, 'cancelled');
       toggleBtn(el, '.upload-cancel', false);
@@ -333,7 +342,7 @@
       function onFileDone() {
         completed++;
         if (completed >= total) {
-          if (submitBtn) { submitBtn.textContent = 'Done'; submitBtn.disabled = false; }
+          if (submitBtn) { submitBtn.textContent = t('Done'); submitBtn.disabled = false; }
           // Refresh drive content after short delay.
           setTimeout(function () {
             if (typeof window.driveRefresh === 'function') {

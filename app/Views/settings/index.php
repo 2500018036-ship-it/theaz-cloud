@@ -15,18 +15,18 @@ $checked = static fn (array $data, string $key): string => (int) ($data[$key] ??
   <div class="col-lg-4">
     <div class="card">
       <div class="card-body text-center">
-        <img src="<?= site_url('settings/avatar') ?>" onerror="this.src='<?= esc($defaultAvatar, 'attr') ?>'" alt="Avatar" class="rounded-circle mb-3" width="96" height="96" style="object-fit:cover">
+        <img src="<?= site_url('settings/avatar') ?>" onerror="this.onerror=null;this.src='<?= esc($defaultAvatar, 'attr') ?>'" alt="Avatar" class="rounded-circle mb-3" width="96" height="96" style="object-fit:cover">
         <h5 class="mb-1"><?= esc((string) (($profile['display_name'] ?? '') !== '' ? $profile['display_name'] : ($user['username'] ?? 'Account'))) ?></h5>
         <p class="text-muted mb-3"><?= esc((string) ($user['email'] ?? '')) ?></p>
         <form action="<?= site_url('settings/avatar') ?>" method="post" enctype="multipart/form-data" class="vstack gap-2">
           <?= csrf_field() ?>
           <input type="file" name="avatar" class="form-control" accept="image/png,image/jpeg,image/webp,image/gif" required>
-          <button type="submit" class="btn btn-light-primary"><i class="ti ti-upload me-1"></i>Update Avatar</button>
+          <button type="submit" class="btn btn-light-primary"><i class="ti ti-upload me-1"></i><?= esc(lang('UI.t5a850001d136')) ?></button>
         </form>
         <?php if (! empty($profile['avatar_path'])): ?>
           <form action="<?= site_url('settings/avatar/delete') ?>" method="post" class="mt-2">
             <?= csrf_field() ?>
-            <button type="submit" class="btn btn-light-danger"><i class="ti ti-trash me-1"></i>Remove Avatar</button>
+            <button type="submit" class="btn btn-light-danger"><i class="ti ti-trash me-1"></i><?= esc(lang('UI.teabecf739d4c')) ?></button>
           </form>
         <?php endif; ?>
       </div>
@@ -35,7 +35,7 @@ $checked = static fn (array $data, string $key): string => (int) ($data[$key] ??
     <div class="card">
       <div class="card-body">
         <div class="d-flex align-items-center justify-content-between">
-          <span class="text-muted">Unread notifications</span>
+          <span class="text-muted"><?= esc(lang('UI.tb1e97dfc5eb8')) ?></span>
           <span class="badge bg-light-primary text-primary"><?= esc((string) ($notificationSummary['unread'] ?? 0)) ?></span>
         </div>
       </div>
@@ -45,79 +45,79 @@ $checked = static fn (array $data, string $key): string => (int) ($data[$key] ??
   <div class="col-lg-8">
     <div class="card">
       <div class="card-header">
-        <h5 class="mb-0">Profile</h5>
+        <h5 class="mb-0"><?= esc(lang('UI.td696a35bdd18')) ?></h5>
       </div>
       <form action="<?= site_url('settings/profile') ?>" method="post" class="card-body">
         <?= csrf_field() ?>
         <div class="row g-3">
           <div class="col-md-6">
-            <label class="form-label" for="display-name">Display name</label>
+            <label class="form-label" for="display-name"><?= esc(lang('UI.t2b7f6a84de91')) ?></label>
             <input type="text" class="form-control" id="display-name" name="display_name" maxlength="120" value="<?= esc(old('display_name', $profile['display_name'] ?? '')) ?>">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Username</label>
+            <label class="form-label"><?= esc(lang('UI.te3b89e9d33f8')) ?></label>
             <input type="text" class="form-control" value="<?= esc((string) ($user['username'] ?? '')) ?>" disabled>
           </div>
           <div class="col-12">
-            <label class="form-label" for="bio">Bio</label>
+            <label class="form-label" for="bio"><?= esc(lang('UI.t3933b1802161')) ?></label>
             <textarea class="form-control" id="bio" name="bio" rows="3" maxlength="1000"><?= esc(old('bio', $profile['bio'] ?? '')) ?></textarea>
           </div>
         </div>
         <div class="text-end mt-3">
-          <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i>Save Profile</button>
+          <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i><?= esc(lang('UI.ta4212f1e2fb0')) ?></button>
         </div>
       </form>
     </div>
 
     <div class="card">
       <div class="card-header">
-        <h5 class="mb-0">Email</h5>
+        <h5 class="mb-0"><?= esc(lang('UI.t969ccbd3cf63')) ?></h5>
       </div>
       <form action="<?= site_url('settings/email') ?>" method="post" class="card-body">
         <?= csrf_field() ?>
         <div class="row g-3 align-items-end">
           <div class="col-md-7">
-            <label class="form-label" for="email">Current email</label>
+            <label class="form-label" for="email"><?= esc(lang('UI.t3711d146f8a9')) ?></label>
             <input type="email" class="form-control" value="<?= esc((string) ($user['email'] ?? '')) ?>" disabled>
           </div>
           <div class="col-md-5">
-            <label class="form-label" for="new-email">New email</label>
+            <label class="form-label" for="new-email"><?= esc(lang('UI.t0d25c8b1db61')) ?></label>
             <input type="email" class="form-control" id="new-email" name="email" value="<?= esc(old('email')) ?>" required>
           </div>
         </div>
         <?php if (! empty($profile['pending_email'])): ?>
           <div class="alert alert-light-warning mt-3 mb-0">
-            Pending verification: <?= esc((string) $profile['pending_email']) ?>
+            <?= esc(lang('UI.t38386171915e')) ?> <?= esc((string) $profile['pending_email']) ?>
           </div>
         <?php endif; ?>
         <div class="text-end mt-3">
-          <button type="submit" class="btn btn-light-primary"><i class="ti ti-mail-forward me-1"></i>Queue Verification Email</button>
+          <button type="submit" class="btn btn-light-primary"><i class="ti ti-mail-forward me-1"></i><?= esc(lang('UI.t6ebe4d7573ce')) ?></button>
         </div>
       </form>
     </div>
 
     <div class="card">
       <div class="card-header">
-        <h5 class="mb-0">Password</h5>
+        <h5 class="mb-0"><?= esc(lang('UI.te7cf3ef4f17c')) ?></h5>
       </div>
       <form action="<?= site_url('settings/password') ?>" method="post" class="card-body">
         <?= csrf_field() ?>
         <div class="row g-3">
           <div class="col-md-4">
-            <label class="form-label" for="current-password">Current password</label>
+            <label class="form-label" for="current-password"><?= esc(lang('UI.t72ed2bd767ce')) ?></label>
             <input type="password" class="form-control" id="current-password" name="current_password" autocomplete="current-password" required>
           </div>
           <div class="col-md-4">
-            <label class="form-label" for="new-password">New password</label>
+            <label class="form-label" for="new-password"><?= esc(lang('UI.t3dd9df4441fb')) ?></label>
             <input type="password" class="form-control" id="new-password" name="new_password" autocomplete="new-password" required>
           </div>
           <div class="col-md-4">
-            <label class="form-label" for="confirm-password">Confirm password</label>
+            <label class="form-label" for="confirm-password"><?= esc(lang('UI.t5ac265f396a2')) ?></label>
             <input type="password" class="form-control" id="confirm-password" name="new_password_confirm" autocomplete="new-password" required>
           </div>
         </div>
         <div class="text-end mt-3">
-          <button type="submit" class="btn btn-light-primary"><i class="ti ti-lock-check me-1"></i>Update Password</button>
+          <button type="submit" class="btn btn-light-primary"><i class="ti ti-lock-check me-1"></i><?= esc(lang('UI.t557be0dabba6')) ?></button>
         </div>
       </form>
     </div>
@@ -143,14 +143,14 @@ $checked = static fn (array $data, string $key): string => (int) ($data[$key] ??
           </div>
           <?php if (! $isAdminAccount): ?>
             <div class="col-md-3">
-              <label class="form-label" for="default-drive-view">Default view</label>
+              <label class="form-label" for="default-drive-view"><?= esc(lang('UI.t99f5151884f2')) ?></label>
               <select class="form-select" id="default-drive-view" name="default_drive_view">
-                <option value="list"<?= ($profile['default_drive_view'] ?? 'list') === 'list' ? ' selected' : '' ?>>List</option>
-                <option value="grid"<?= ($profile['default_drive_view'] ?? 'list') === 'grid' ? ' selected' : '' ?>>Grid</option>
+                <option value="list"<?= ($profile['default_drive_view'] ?? 'list') === 'list' ? ' selected' : '' ?>><?= esc(lang('UI.t6f202f54a7b2')) ?></option>
+                <option value="grid"<?= ($profile['default_drive_view'] ?? 'list') === 'grid' ? ' selected' : '' ?>><?= esc(lang('UI.t0d7d12ac624c')) ?></option>
               </select>
             </div>
             <div class="col-md-3">
-              <label class="form-label" for="default-sort">Default sort</label>
+              <label class="form-label" for="default-sort"><?= esc(lang('UI.tb903f563f069')) ?></label>
               <select class="form-select" id="default-sort" name="default_sort">
                 <?php foreach (['name' => 'Name', 'updated' => 'Updated', 'size' => 'Size', 'type' => 'Type'] as $value => $label): ?>
                   <option value="<?= esc($value) ?>"<?= ($profile['default_sort'] ?? 'name') === $value ? ' selected' : '' ?>><?= esc($label) ?></option>
@@ -158,10 +158,10 @@ $checked = static fn (array $data, string $key): string => (int) ($data[$key] ??
               </select>
             </div>
             <div class="col-md-3">
-              <label class="form-label" for="default-sort-dir">Direction</label>
+              <label class="form-label" for="default-sort-dir"><?= esc(lang('UI.t9c8a9579abe5')) ?></label>
               <select class="form-select" id="default-sort-dir" name="default_sort_dir">
-                <option value="asc"<?= ($profile['default_sort_dir'] ?? 'asc') === 'asc' ? ' selected' : '' ?>>Ascending</option>
-                <option value="desc"<?= ($profile['default_sort_dir'] ?? 'asc') === 'desc' ? ' selected' : '' ?>>Descending</option>
+                <option value="asc"<?= ($profile['default_sort_dir'] ?? 'asc') === 'asc' ? ' selected' : '' ?>><?= esc(lang('UI.t77184595bde3')) ?></option>
+                <option value="desc"<?= ($profile['default_sort_dir'] ?? 'asc') === 'desc' ? ' selected' : '' ?>><?= esc(lang('UI.t79479a6c76d8')) ?></option>
               </select>
             </div>
           <?php endif; ?>
@@ -169,7 +169,7 @@ $checked = static fn (array $data, string $key): string => (int) ($data[$key] ??
 
         <?php if ($isAdminAccount): ?>
           <div class="alert alert-light-info mt-3 mb-0">
-            Administrator accounts do not use personal My Drive preferences.
+            <?= esc(lang('UI.t21844c258f84')) ?>
           </div>
         <?php endif; ?>
 
@@ -193,7 +193,7 @@ $checked = static fn (array $data, string $key): string => (int) ($data[$key] ??
         </div>
 
         <div class="text-end mt-3">
-          <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i>Save Preferences</button>
+          <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i><?= esc(lang('UI.te5b8e6907faa')) ?></button>
         </div>
       </form>
     </div>

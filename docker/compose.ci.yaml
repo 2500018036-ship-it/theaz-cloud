@@ -1,8 +1,11 @@
 services:
   app:
     environment:
-      app_baseURL: http://127.0.0.1:18080/
+      app_baseURL: ${CI_BASE_URL:-http://127.0.0.1:18080/}
       cookie_secure: "false"
+  web:
+    ports: !override ["127.0.0.1:${LOCAL_HTTP_PORT:-18080}:80"]
+    networks: !override [backend, ci_frontend]
   tests:
     image: cloud-storage-test:${RELEASE_SHA}
     build:
@@ -20,3 +23,5 @@ services:
     depends_on:
       db: {condition: service_healthy}
     networks: [backend]
+networks:
+  ci_frontend: {}

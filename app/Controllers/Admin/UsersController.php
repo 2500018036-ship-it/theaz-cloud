@@ -27,8 +27,8 @@ class UsersController extends BaseController
             'pageTitle'   => 'Users',
             'activeMenu'  => 'admin.users',
             'breadcrumbs' => [
-                ['label' => 'Administration'],
-                ['label' => 'Users'],
+                ['label' => lang('UI.t4b42c6690ebe')],
+                ['label' => lang('UI.t6b0cc904d081')],
             ],
             'currentUser' => $this->currentUser(),
             'users'       => $result['items'],
@@ -49,9 +49,9 @@ class UsersController extends BaseController
                 'pageTitle'   => 'User Detail',
                 'activeMenu'  => 'admin.users',
                 'breadcrumbs' => [
-                    ['label' => 'Administration'],
-                    ['label' => 'Users', 'url' => site_url('admin/users')],
-                    ['label' => 'Detail'],
+                    ['label' => lang('UI.t4b42c6690ebe')],
+                    ['label' => lang('UI.t6b0cc904d081'), 'url' => site_url('admin/users')],
+                    ['label' => lang('UI.tfb5f27d5457c')],
                 ],
                 'currentUser' => $this->currentUser(),
                 'detail'      => $this->admin->userDetail($id),
@@ -74,25 +74,6 @@ class UsersController extends BaseController
             ], [
                 'error'  => $exception->getMessage(),
                 'status' => (string) $this->request->getPost('status'),
-            ], $id);
-
-            return $this->redirectBackToUser($id)->with('error', $exception->getMessage());
-        }
-    }
-
-    public function updateRole(int $id): RedirectResponse
-    {
-        try {
-            $this->admin->updateUserRole($this->currentUserId(), $id, (string) $this->request->getPost('role'));
-
-            return $this->redirectBackToUser($id)->with('message', 'User role updated.');
-        } catch (\Throwable $exception) {
-            (new ActivityLogger())->record($this->currentUserId(), 'admin.user.role', 'failure', [
-                'type' => 'user',
-                'id'   => $id,
-            ], [
-                'error' => $exception->getMessage(),
-                'role'  => (string) $this->request->getPost('role'),
             ], $id);
 
             return $this->redirectBackToUser($id)->with('error', $exception->getMessage());
@@ -159,9 +140,6 @@ class UsersController extends BaseController
             return redirect()->to('/admin/dashboard');
         }
 
-        if ($returnTo === 'management') {
-            return redirect()->to('/admin/management');
-        }
 
         if ($returnTo === 'detail') {
             return redirect()->to('/admin/users/' . $id);

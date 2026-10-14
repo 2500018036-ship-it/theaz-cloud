@@ -28,8 +28,8 @@ class AnnouncementsController extends BaseController
             'pageTitle'   => 'Announcements',
             'activeMenu'  => 'admin.announcements',
             'breadcrumbs' => [
-                ['label' => 'Admin', 'url' => site_url('admin/dashboard')],
-                ['label' => 'Announcements'],
+                ['label' => lang('UI.tc1c224b03cd9'), 'url' => site_url('admin/dashboard')],
+                ['label' => lang('UI.tfe02680f2479')],
             ],
             'currentUser' => $this->currentUser(),
             'announcements' => $result['items'],

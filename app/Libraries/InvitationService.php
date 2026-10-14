@@ -41,7 +41,7 @@ class InvitationService
     {
         $type = (string) ($options['invitation_type'] ?? 'user');
         $roleOnAccept = (string) ($options['role_on_accept'] ?? 'user');
-        if (! in_array($type, ['user', 'admin'], true)) {
+        if ($type !== 'user') {
             throw new \DomainException('Invitation type is not available.');
         }
 
@@ -90,6 +90,7 @@ class InvitationService
         $now = Time::now()->toDateTimeString();
 
         return $this->db->table('invitation_codes')
+            ->where('deleted_at', null)
             ->where('code_hash', $this->hashCode($plainCode))
             ->where('invitation_type', $type)
             ->where('status', 'active')
@@ -144,6 +145,9 @@ class InvitationService
 
     public function consumeForType(string $plainCode, string $type = 'user'): ?array
     {
+        if ($type !== 'user') {
+            return null;
+        }
         $now = Time::now()->toDateTimeString();
         $hash = $this->hashCode($plainCode);
 
@@ -155,6 +159,7 @@ class InvitationService
             ->set('last_used_at', $now)
             ->set('updated_at', $now)
             ->where('code_hash', $hash)
+            ->where('deleted_at', null)
             ->where('invitation_type', $type)
             ->where('status', 'active')
             ->where('revoked_at', null)
@@ -184,5 +189,19 @@ class InvitationService
                 'accepted_at'      => Time::now()->toDateTimeString(),
                 'updated_at'       => Time::now()->toDateTimeString(),
             ]);
+    }
+
+    public function archive(int $id, int $actorId): bool
+    {
+        (new AdminAuthorization($this->db))->requirePermission($actorId, 'invitations.manage');
+        $this->expireStale();
+        $now = Time::now()->toDateTimeString();
+        $this->db->table('invitation_codes')->where('id', $id)->where('deleted_at', null)
+            ->whereIn('status', ['expired', 'revoked'])->update(['deleted_at' => $now, 'updated_at' => $now]);
+        if ($this->db->affectedRows() !== 1) {
+            return false;
+        }
+        (new ActivityLogger($this->db))->record($actorId, 'admin.invitation.delete', 'success', ['type' => 'invitation', 'id' => $id]);
+        return true;
     }
 }

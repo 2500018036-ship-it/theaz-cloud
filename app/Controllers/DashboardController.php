@@ -15,7 +15,7 @@ class DashboardController extends BaseController
             'pageTitle'   => 'Dashboard',
             'activeMenu'  => 'dashboard',
             'breadcrumbs' => [
-                ['label' => 'Dashboard'],
+                ['label' => lang('UI.t67b696468610')],
             ],
             'currentUser' => [
                 'username' => session('username'),

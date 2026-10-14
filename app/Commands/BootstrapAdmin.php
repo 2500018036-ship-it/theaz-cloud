@@ -49,6 +49,10 @@ class BootstrapAdmin extends BaseCommand
         }
 
         $users = new UserModel();
+        if ($users->withDeleted()->where('role', 'super_admin')->countAllResults() > 0) {
+            CLI::write('The permanent administrator already exists. No changes were made.', 'yellow');
+            return EXIT_SUCCESS;
+        }
         $existingByEmail = $users->withDeleted()->where('email', $email)->first();
         $existingByUsername = $users->withDeleted()->where('username', $username)->first();
 

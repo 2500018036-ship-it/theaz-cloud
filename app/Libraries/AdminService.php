@@ -238,7 +238,7 @@ class AdminService
                 $builder->where('role', $role);
             }
 
-            if (in_array($status, config(Auth::class)->accountStatuses, true)) {
+            if (in_array($status, ['active', 'inactive'], true)) {
                 $builder->where('status', $status);
             }
 
@@ -319,12 +319,15 @@ class AdminService
     {
         (new AdminAuthorization($this->db))->requirePermission($adminId, 'users.manage');
         $status = strtolower(trim($status));
-        if (! in_array($status, config(Auth::class)->accountStatuses, true)) {
+        if (! in_array($status, ['active', 'inactive'], true)) {
             throw new \DomainException('Status is not available.');
         }
 
         $actor = $this->findUser($adminId);
         $user = $this->findUser($targetUserId);
+        if ($user['role'] === 'super_admin') {
+            throw new \DomainException('The primary administrator is permanent.');
+        }
         if ($adminId === $targetUserId && $status !== 'active') {
             throw new \DomainException('You cannot deactivate your own admin session.');
         }
@@ -343,6 +346,9 @@ class AdminService
             throw new \DomainException('At least one active administrator must remain.');
         }
 
+        if ($status === 'active' && (new EmailVerificationService($this->db))->requiresVerification($user)) {
+            throw new \DomainException('This user must verify their email before activation.');
+        }
         (new UserModel())->update($targetUserId, ['status' => $status]);
 
         $updated = $this->findUser($targetUserId);
@@ -360,44 +366,7 @@ class AdminService
 
     public function updateUserRole(int $adminId, int $targetUserId, string $role): array
     {
-        (new AdminAuthorization($this->db))->requirePermission($adminId, 'users.manage');
-        $role = strtolower(trim($role));
-        if (! in_array($role, config(Auth::class)->roles, true)) {
-            throw new \DomainException('Role is not available.');
-        }
-
-        $actor = $this->findUser($adminId);
-        $user = $this->findUser($targetUserId);
-
-        if ($role !== $user['role'] && $actor['role'] !== AdminAuthorization::ROLE_SUPER_ADMIN) {
-            throw new \DomainException('Only a super admin can change account roles.');
-        }
-
-        if ($role === AdminAuthorization::ROLE_SUPER_ADMIN && $actor['role'] !== AdminAuthorization::ROLE_SUPER_ADMIN) {
-            throw new \DomainException('Only a super admin can grant the super admin role.');
-        }
-
-        if ($adminId === $targetUserId && $role !== $user['role']) {
-            throw new \DomainException('You cannot change your own administrator role.');
-        }
-
-        if ($user['role'] === AdminAuthorization::ROLE_SUPER_ADMIN && $role !== AdminAuthorization::ROLE_SUPER_ADMIN && $user['status'] === 'active' && $this->activeSuperAdminCount() <= 1) {
-            throw new \DomainException('At least one active super admin must remain.');
-        }
-
-        (new UserModel())->update($targetUserId, ['role' => $role]);
-
-        $updated = $this->findUser($targetUserId);
-        $this->activity->record($adminId, 'admin.user.role', 'success', [
-            'type' => 'user',
-            'id'   => $targetUserId,
-            'name' => $updated['username'],
-        ], [
-            'old_role' => $user['role'],
-            'new_role' => $role,
-        ], $targetUserId);
-
-        return $updated;
+        throw new \DomainException('Account roles are permanent.');
     }
 
     public function updateUserQuota(int $adminId, int $targetUserId, int $quotaBytes): array
@@ -444,7 +413,9 @@ class AdminService
             $builder = $this->db->table('invitation_codes invitation')
                 ->select('invitation.*, creator.email AS created_by_email, revoker.email AS revoked_by_email')
                 ->join('users AS creator', 'creator.id = invitation.created_by', 'left')
-                ->join('users AS revoker', 'revoker.id = invitation.revoked_by', 'left');
+                ->join('users AS revoker', 'revoker.id = invitation.revoked_by', 'left')
+                ->where('invitation.deleted_at', null)
+                ->where('invitation.invitation_type', 'user');
 
             if ($query !== '') {
                 $builder->like('invitation.label', $query);
@@ -479,6 +450,7 @@ class AdminService
     public function updateInvitation(int $adminId, int $invitationId, ?string $label, int $maxUses, ?string $expiresAt, ?int $quotaBytes = null): array
     {
         $invitation = $this->db->table('invitation_codes')
+            ->where('deleted_at', null)
             ->where('id', $invitationId)
             ->get()
             ->getRowArray();

@@ -10,7 +10,7 @@ $breadcrumbs = $breadcrumbs ?? [];
           <h5 class="m-b-10"><?= esc($pageTitle) ?></h5>
         </div>
         <ul class="breadcrumb">
-          <li class="breadcrumb-item"><a href="<?= site_url('/') ?>">Home</a></li>
+          <li class="breadcrumb-item"><a href="<?= site_url('/') ?>"><?= esc(lang('UI.t3a78695388b3')) ?></a></li>
           <?php foreach ($breadcrumbs as $breadcrumb): ?>
             <?php if (! empty($breadcrumb['url'])): ?>
               <li class="breadcrumb-item"><a href="<?= esc($breadcrumb['url']) ?>"><?= esc($breadcrumb['label']) ?></a></li>

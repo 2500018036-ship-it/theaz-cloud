@@ -53,6 +53,10 @@ class EmailVerificationService
         $verificationUrl = site_url('email/verify/' . $token);
 
         $this->profileFor($userId);
+        // A resend invalidates earlier links and prevents delivery of obsolete queued mail.
+        $this->db->table('email_queue')->where('user_id', $userId)
+            ->whereIn('event_type', ['email_verification', 'admin_email_verification', 'email_change_verification'])
+            ->where('status', 'queued')->update(['status' => 'cancelled']);
         $this->profiles->update($userId, [
             'pending_email'            => $email,
             'pending_email_token_hash' => hash('sha256', $token),
@@ -88,6 +92,9 @@ class EmailVerificationService
 
     public function confirm(string $token): int
     {
+        if (! preg_match('/\A[a-f0-9]{64}\z/', $token)) {
+            throw new \DomainException('Email verification link is invalid or expired.');
+        }
         $hash = hash('sha256', trim($token));
         $profile = $this->db->table('user_profiles')
             ->where('pending_email_token_hash', $hash)
@@ -118,6 +125,14 @@ class EmailVerificationService
         $this->db->transBegin();
 
         try {
+            // Claim the token atomically. Concurrent requests cannot reuse it.
+            $this->db->table('user_profiles')->where('user_id', $userId)
+                ->where('pending_email_token_hash', $hash)
+                ->where('pending_email_expires_at >=', Time::now()->toDateTimeString())
+                ->update(['pending_email_token_hash' => null]);
+            if ($this->db->affectedRows() !== 1) {
+                throw new \DomainException('Email verification link is invalid or expired.');
+            }
             $payload = ['email' => $email];
             if ((string) $user['status'] === self::PENDING_STATUS) {
                 $payload['status'] = 'active';
@@ -133,6 +148,9 @@ class EmailVerificationService
                 'pending_email_expires_at' => null,
                 'email_verified_at'        => Time::now()->toDateTimeString(),
             ]);
+            if ($this->db->transStatus() === false) {
+                throw new \RuntimeException('Email verification could not be saved.');
+            }
             $this->db->transCommit();
         } catch (\Throwable $exception) {
             $this->db->transRollback();
@@ -163,11 +181,21 @@ class EmailVerificationService
             ->get()
             ->getRowArray();
 
-        if ($user === null || (string) ($user['status'] ?? '') !== self::PENDING_STATUS) {
+        if ($user === null || ! in_array((string) ($user['status'] ?? ''), [self::PENDING_STATUS, 'active'], true)
+            || ($user['role'] === 'super_admin') || ! $this->requiresVerification($user)) {
             return null;
         }
 
         return $this->issue((int) $user['id'], (string) $user['email']);
+    }
+
+    public function requiresVerification(array $user): bool
+    {
+        if ($user['role'] === 'super_admin' || config(\Config\Auth::class)->emailVerificationDeferred) {
+            return false;
+        }
+        $profile = $this->profiles->find((int) $user['id']);
+        return empty($profile['email_verified_at']);
     }
 
     private function profileFor(int $userId): array

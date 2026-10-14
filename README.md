@@ -7,7 +7,7 @@ Production deployment and operations: [docs/operations.md](docs/operations.md).
 The GitHub Actions pipeline checks PHP syntax and dependencies, tests SQLite and MariaDB,
 and verifies registration, login, folders, uploads, downloads, account isolation and quotas.
 Only the trusted `production` branch can deploy through the restricted Azure SSH gateway.
-Persistent data and server secrets are kept outside Git. Email verification is deferred during this development rollout.
+Persistent data and server secrets are kept outside Git. Invite registration requires email verification; see [verification and async operations](docs/verification-and-async.md).
 
 ```bash
 composer install

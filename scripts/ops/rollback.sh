@@ -14,7 +14,7 @@ cp -a "$stack/release.env" "$stack/release.env.before-rollback-$(date -u +%Y%m%d
 cp "$release/docker/compose.production.yaml" "$stack/compose.yaml"
 printf 'RELEASE_SHA=%s\nRELEASE_PATH=%s\n' "$1" "$release" > "$stack/release.env"
 cd "$stack"
-docker compose --env-file production.env --env-file release.env up -d --wait --wait-timeout 180
+docker compose --env-file production.env --env-file release.env up -d --remove-orphans --wait --wait-timeout 180
 curl -fsS http://127.0.0.1:18080/ready >/dev/null
 ln -sfn "$release" /mnt/data/www/cloud-storage/current
 echo "Application rollback healthy: $1. Database remains unchanged."

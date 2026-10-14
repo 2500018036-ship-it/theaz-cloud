@@ -90,12 +90,12 @@ final class Phase11SettingsNotificationsTest extends CIUnitTestCase
 
         $service->requestEmailChange($userId, 'settings-new@example.test');
         $queued = $this->db->table('email_queue')
-            ->where('event_type', 'email_verification')
+            ->where('event_type', 'email_change_verification')
             ->where('recipient_email', 'settings-new@example.test')
             ->get()
             ->getRowArray();
         $this->assertIsArray($queued);
-        $this->assertSame(1, preg_match('#/settings/email/verify/([a-f0-9]{64})#', (string) $queued['body_text'], $matches));
+        $this->assertSame(1, preg_match('#/email/verify/([a-f0-9]{64})#', (string) $queued['body_text'], $matches));
 
         $confirmedUserId = $service->confirmEmailChange($matches[1]);
         $this->assertSame($userId, $confirmedUserId);
@@ -114,7 +114,7 @@ final class Phase11SettingsNotificationsTest extends CIUnitTestCase
     {
         $ownerId = $this->createUser('noticeowner', 'user');
         $viewerId = $this->createUser('noticeviewer', 'user');
-        $adminId = $this->createUser('noticeadmin', 'admin');
+        $adminId = $this->createUser('noticeadmin', 'super_admin');
 
         $settings = new SettingsService($this->db);
         $settings->updatePreferences($viewerId, [
@@ -181,7 +181,7 @@ final class Phase11SettingsNotificationsTest extends CIUnitTestCase
 
     public function testMaintenanceModeBlocksRegularAuthRoutesButNotAdmins(): void
     {
-        $adminId = $this->createUser('maintadmin', 'admin');
+        $adminId = $this->createUser('maintadmin', 'super_admin');
         $userId = $this->createUser('maintuser', 'user');
         $settings = new SystemSettingsService($this->db);
         $settings->updateMaintenance($adminId, true, 'Back soon.');
@@ -199,7 +199,7 @@ final class Phase11SettingsNotificationsTest extends CIUnitTestCase
         session()->set([
             'is_logged_in' => true,
             'user_id'      => $adminId,
-            'role'         => 'admin',
+            'role'         => 'super_admin',
         ]);
 
         $this->assertNull((new AuthFilter())->before(service('request')));
@@ -255,6 +255,7 @@ final class Phase11SettingsNotificationsTest extends CIUnitTestCase
 
         $this->assertIsInt($id);
 
+        (new \App\Models\UserProfileModel())->insert(['user_id' => $id, 'email_verified_at' => date('Y-m-d H:i:s')]);
         return $id;
     }
 

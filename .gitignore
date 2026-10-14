@@ -7,6 +7,12 @@
 !.env.*.example
 docker/env/*.local
 docker/secrets/*
+docker/*.env
+*.pem
+*.key
+*.p12
+*.pfx
+.ssh/
 
 #--------------------------------------------------------------------
 # Dependencies
@@ -23,6 +29,7 @@ writable/debugbar/*
 writable/logs/*
 writable/session/*
 writable/uploads/*
+writable/profile-avatars/
 !writable/cache/.gitkeep
 !writable/debugbar/.gitkeep
 !writable/logs/.gitkeep

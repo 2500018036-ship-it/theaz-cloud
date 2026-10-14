@@ -24,7 +24,6 @@ class AdminAuthorization
         'notifications.manage',
         'system_settings.view',
         'system_settings.manage',
-        'admins.manage',
         'language.manage',
     ];
 
@@ -39,7 +38,6 @@ class AdminAuthorization
         'notifications.manage' => 'Manage announcements',
         'system_settings.view' => 'View system settings',
         'system_settings.manage' => 'Manage system settings',
-        'admins.manage' => 'Admin management access',
         'language.manage' => 'Manage language preferences',
     ];
 
@@ -84,7 +82,7 @@ class AdminAuthorization
     {
         return $user !== null
             && (string) ($user['status'] ?? '') === 'active'
-            && in_array((string) ($user['role'] ?? ''), [self::ROLE_ADMIN, self::ROLE_SUPER_ADMIN], true);
+            && in_array((string) ($user['role'] ?? ''), [self::ROLE_SUPER_ADMIN], true);
     }
 
     public function isSuperAdmin(?array $user): bool
@@ -217,7 +215,6 @@ class AdminAuthorization
         }
 
         if (str_starts_with($path, 'admin/management')) {
-            return 'admins.manage';
         }
 
         return null;

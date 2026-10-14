@@ -167,6 +167,7 @@
   }
 
   document.addEventListener('click', function (event) {
+    if (window.CloudApp) return;
     var link = event.target.closest('a[href]');
     if (!link || link.classList.contains('disabled')) {
       return;
@@ -191,6 +192,7 @@
   });
 
   document.addEventListener('submit', function (event) {
+    if (window.CloudApp) return;
     var form = event.target;
     if (!form || form.tagName !== 'FORM') {
       return;
@@ -215,6 +217,7 @@
   });
 
   window.addEventListener('popstate', function () {
+    if (window.CloudApp) return;
     var targetUrl = urlFor(window.location.href);
     if (isAdminUrl(targetUrl)) {
       navigateTo(targetUrl.toString(), false);

@@ -6,7 +6,7 @@
       </div>
       <div class="col-auto my-1">
         <ul class="list-inline footer-link mb-0">
-          <li class="list-inline-item"><a href="<?= site_url('/') ?>">Home</a></li>
+          <li class="list-inline-item"><a href="<?= site_url('/') ?>"><?= esc(lang('UI.t3a78695388b3')) ?></a></li>
         </ul>
       </div>
     </div>

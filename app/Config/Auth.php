@@ -15,7 +15,7 @@ class Auth extends BaseConfig
     // Temporary development policy; set false to honor the admin verification setting.
     public bool $emailVerificationDeferred = false;
 
-    public array $roles = ['super_admin', 'admin', 'user'];
+    public array $roles = ['super_admin', 'user'];
 
     public array $accountStatuses = ['active', 'inactive', 'suspended', 'pending_verification'];
 }

@@ -104,6 +104,8 @@ return [
         'shareRevokedBody' => 'Access to "{0}" was revoked.',
     ],
     'email' => [
+        'registrationQueued' => 'Registration successful. Please check {0} for your verification email before signing in. Delivery is queued; use resend if it does not arrive.',
+        'invalidLink' => 'This verification link is invalid, already used, or expired. Request a new email.',
         'verifySubject' => 'Verify your Theaz Cloud email',
         'verifyAdminSubject' => 'Verify your administrator email',
         'verifyGreeting' => 'Hello {0},',

@@ -35,7 +35,7 @@ final class AdminInvitationFlowTest extends CIUnitTestCase
             'username'            => 'inviteadmin',
             'email'               => 'inviteadmin@example.test',
             'password_hash'       => password_hash('correct-password', PASSWORD_DEFAULT),
-            'role'                => 'admin',
+            'role'                => 'super_admin',
             'status'              => 'active',
             'storage_quota_bytes' => config(Auth::class)->defaultQuotaBytes,
             'storage_used_bytes'  => 0,
@@ -48,7 +48,7 @@ final class AdminInvitationFlowTest extends CIUnitTestCase
             'user_id'      => $userId,
             'username'     => 'inviteadmin',
             'email'        => 'inviteadmin@example.test',
-            'role'         => 'admin',
+            'role'         => 'super_admin',
         ]);
 
         return $userId;

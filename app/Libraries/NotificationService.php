@@ -82,11 +82,21 @@ class NotificationService
 
         $total = (int) $builderFactory()->countAllResults();
         $rows = $builderFactory()
+            ->select('id, user_id, category, title, body, action_url, related_type, related_id, read_at, created_at')
             ->orderBy('created_at', 'DESC')
             ->orderBy('id', 'DESC')
             ->limit($perPage, ($page - 1) * $perPage)
             ->get()
             ->getResultArray();
+
+        $recipient = (string) ($this->db->table('users')->select('email')->where('id', $userId)->get()->getRowArray()['email'] ?? '');
+        foreach ($rows as &$row) {
+            if (in_array($row['category'], ['announcement', 'announcements'], true)) {
+                $row['title'] = $this->privateBroadcastText($row['title'], $recipient);
+                $row['body'] = $this->privateBroadcastText($row['body'], $recipient);
+            }
+        }
+        unset($row);
 
         return [
             'items' => $rows,
@@ -213,8 +223,8 @@ class NotificationService
                     $this->notifications->insert([
                         'user_id'      => (int) $recipient['id'],
                         'category'     => 'announcement',
-                        'title'        => (string) $announcement['title'],
-                        'body'         => (string) $announcement['body'],
+                        'title'        => $this->privateBroadcastText((string) $announcement['title'], (string) $recipient['email']),
+                        'body'         => $this->privateBroadcastText((string) $announcement['body'], (string) $recipient['email']),
                         'action_url'   => site_url('notifications'),
                         'related_type' => 'announcement',
                         'related_id'   => $announcementId,
@@ -313,6 +323,14 @@ class NotificationService
 
     public function createForUser(int $userId, string $category, string $title, string $body, ?string $actionUrl = null, array $options = []): void
     {
+        if (in_array($category, ['announcement', 'announcements'], true)) {
+            $recipient = (string) ($this->db->table('users')->select('email')->where('id', $userId)->get()->getRowArray()['email'] ?? '');
+            $title = $this->privateBroadcastText($title, $recipient);
+            $body = $this->privateBroadcastText($body, $recipient);
+            foreach (['email_subject', 'email_body'] as $key) {
+                if (isset($options[$key])) $options[$key] = $this->privateBroadcastText((string) $options[$key], $recipient);
+            }
+        }
         $profile = $this->profileFor($userId);
         $category = mb_substr($category, 0, 40);
         $now = Time::now()->toDateTimeString();
@@ -351,6 +369,10 @@ class NotificationService
 
     public function queueEmail(?int $userId, string $recipient, string $eventType, ?int $eventId, string $subject, string $body): int
     {
+        if (in_array($eventType, ['announcement', 'announcements'], true)) {
+            $subject = $this->privateBroadcastText($subject, $recipient);
+            $body = $this->privateBroadcastText($body, $recipient);
+        }
         $recipient = trim($recipient);
         if (! filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
             throw new \DomainException('Recipient email is invalid.');
@@ -402,6 +424,12 @@ class NotificationService
         $this->profiles->insert(['user_id' => $userId]);
 
         return $this->profiles->find($userId) ?? ['user_id' => $userId];
+    }
+
+    private function privateBroadcastText(string $text, string $recipient): string
+    {
+        return preg_replace_callback('/[a-z0-9.!#$%&\x27*+\/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}/i',
+            static fn ($match) => strcasecmp($match[0], $recipient) === 0 ? $match[0] : '[private email]', $text) ?? $text;
     }
 
     private function localeForUser(int $userId): string

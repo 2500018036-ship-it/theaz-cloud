@@ -24,8 +24,8 @@ class SettingsController extends BaseController
             'pageTitle'   => 'System Settings',
             'activeMenu'  => 'admin.settings',
             'breadcrumbs' => [
-                ['label' => 'Admin', 'url' => site_url('admin/dashboard')],
-                ['label' => 'System Settings'],
+                ['label' => lang('UI.tc1c224b03cd9'), 'url' => site_url('admin/dashboard')],
+                ['label' => lang('UI.t1f87f883cc7e')],
             ],
             'currentUser' => $this->currentUser(),
             'settings'    => $this->settings->all(),

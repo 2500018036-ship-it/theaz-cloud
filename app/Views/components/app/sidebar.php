@@ -9,7 +9,6 @@ $canSystemSettings = false;
 if ($isAdmin && session('user_id')) {
     try {
         $authz = new \App\Libraries\AdminAuthorization();
-        $canManageAdmins = $authz->hasPermission((int) session('user_id'), 'admins.manage');
         $canSystemSettings = $authz->hasPermission((int) session('user_id'), 'system_settings.view');
     } catch (\Throwable) {
         $canManageAdmins = false;
@@ -21,7 +20,6 @@ $items = $isAdmin
     ? [
         ['caption' => lang('App.menu.administration'), 'icon' => 'ti ti-shield-lock'],
         ['key' => 'admin.dashboard', 'label' => lang('App.menu.dashboard'), 'icon' => 'ti ti-dashboard', 'url' => site_url('admin/dashboard')],
-        ...($canManageAdmins ? [['key' => 'admin.management', 'label' => lang('App.menu.adminManagement'), 'icon' => 'ti ti-user-shield', 'url' => site_url('admin/management')]] : []),
         ['key' => 'admin.users', 'label' => lang('App.menu.users'), 'icon' => 'ti ti-users', 'url' => site_url('admin/users')],
         ['key' => 'admin.invitations', 'label' => lang('App.menu.invitations'), 'icon' => 'ti ti-ticket', 'url' => site_url('admin/invitations')],
         ['caption' => lang('App.menu.operations'), 'icon' => 'ti ti-database'],
@@ -70,7 +68,7 @@ $items = $isAdmin
                 <span class="pc-micon"><i class="<?= esc($item['icon']) ?>"></i></span>
                 <span class="pc-mtext"><?= esc($item['label']) ?></span>
                 <?php if ($isDisabled): ?>
-                  <span class="badge bg-light-secondary text-secondary ms-auto">Soon</span>
+                  <span class="badge bg-light-secondary text-secondary ms-auto"><?= esc(lang('UI.tcf0ee3547a4e')) ?></span>
                 <?php endif; ?>
               </a>
             </li>

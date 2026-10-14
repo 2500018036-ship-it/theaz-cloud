@@ -16,7 +16,7 @@ class MigrateProduction extends BaseCommand
         try {
             $runner = service('migrations');
             $runner->setNamespace('App');
-            if (! $runner->latest()) {
+            if (! $runner->latest(config(\Config\Database::class)->defaultGroup)) {
                 throw new \RuntimeException('Migrations did not complete.');
             }
             foreach (['users', 'invitation_codes', 'drive_items', 'system_settings', 'user_profiles', 'email_queue'] as $table) {

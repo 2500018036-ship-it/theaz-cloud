@@ -1,5 +1,6 @@
-<?= view('components/app/head', ['title' => $title ?? 'Theaz Cloud']) ?>
+<?= view('components/app/head', ['title' => $pageTitle ?? $title ?? 'Theaz Cloud']) ?>
 <body data-pc-preset="preset-1" data-pc-direction="ltr" data-pc-theme="light">
+<div id="cloud-shell">
   <?= view('components/app/loader') ?>
   <?= view('components/app/sidebar', [
       'variant' => 'user',
@@ -23,6 +24,7 @@
 
   <?= view('components/app/footer') ?>
   <?= view('components/ui/toast', $toast ?? ['message' => '']) ?>
+</div>
   <?= view('components/app/scripts') ?>
 </body>
 </html>

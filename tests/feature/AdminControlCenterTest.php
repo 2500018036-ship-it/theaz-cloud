@@ -54,15 +54,15 @@ final class AdminControlCenterTest extends CIUnitTestCase
         $result = (new AdminFilter())->before(service('request'));
 
         $this->assertInstanceOf(ResponseInterface::class, $result);
-        $this->assertSame(403, $result->getStatusCode());
+        $this->assertSame(302, $result->getStatusCode());
     }
 
     public function testUserListPaginationAndFilters(): void
     {
-        $adminId = $this->createUser('adminpager', 'admin', 'active');
+        $adminId = $this->createUser('adminpager', 'super_admin', 'active');
         $this->createUser('alphauser', 'user', 'active');
         $this->createUser('betauser', 'user', 'inactive');
-        $this->createUser('gammaadmin', 'admin', 'active');
+        $this->createUser('gammauser', 'user', 'active');
 
         $service = $this->adminService();
         $pageOne = $service->listUsers(['page' => 1, 'perPage' => 2]);
@@ -81,20 +81,16 @@ final class AdminControlCenterTest extends CIUnitTestCase
         $service = $this->adminService();
 
         $service->updateUserQuota($adminId, $userId, 2048);
-        $service->updateUserRole($adminId, $userId, 'admin');
+        try { $service->updateUserRole($adminId, $userId, 'super_admin'); $this->fail('Role escalation must fail.'); } catch (DomainException) { $this->assertTrue(true); }
         $service->updateUserStatus($adminId, $userId, 'inactive');
 
         $this->seeInDatabase('users', [
             'id' => $userId,
-            'role' => 'admin',
+            'role' => 'user',
             'status' => 'inactive',
             'storage_quota_bytes' => 2048,
         ]);
-        $this->seeInDatabase('activity_logs', [
-            'actor_id' => $adminId,
-            'action'   => 'admin.user.role',
-            'status'   => 'success',
-        ]);
+
         $this->seeInDatabase('activity_logs', [
             'actor_id' => $adminId,
             'action'   => 'admin.user.status',
@@ -110,7 +106,7 @@ final class AdminControlCenterTest extends CIUnitTestCase
     public function testAdministratorQuotaCannotBeChanged(): void
     {
         $superAdminId = $this->createUser('quotasuper', 'super_admin', 'active');
-        $adminId = $this->createUser('quotaadmin', 'admin', 'active');
+        $adminId = $superAdminId;
 
         try {
             $this->adminService()->updateUserQuota($superAdminId, $adminId, 2048);
@@ -122,12 +118,12 @@ final class AdminControlCenterTest extends CIUnitTestCase
 
     public function testRegularAdminCannotChangeRolesOrSuperAdminSettings(): void
     {
-        $adminId = $this->createUser('regularadmin', 'admin', 'active');
+        $adminId = $this->createUser('regularuseractor', 'user', 'active');
         $userId = $this->createUser('regularuser', 'user', 'active');
         $authorization = new AdminAuthorization($this->db);
 
-        $this->assertTrue($authorization->hasPermission($adminId, 'users.manage'));
-        $this->assertTrue($authorization->hasPermission($adminId, 'system_settings.view'));
+        $this->assertFalse($authorization->hasPermission($adminId, 'users.manage'));
+        $this->assertFalse($authorization->hasPermission($adminId, 'system_settings.view'));
         $this->assertFalse($authorization->hasPermission($adminId, 'system_settings.manage'));
         $this->assertFalse($authorization->hasPermission($adminId, 'admins.manage'));
         $this->assertFalse($authorization->hasPermission($adminId, 'activity_logs.manage'));
@@ -150,7 +146,7 @@ final class AdminControlCenterTest extends CIUnitTestCase
 
     public function testLastActiveAdminCannotBeLockedOut(): void
     {
-        $adminId = $this->createUser('lastadmin', 'admin', 'active');
+        $adminId = $this->createUser('lastadmin', 'super_admin', 'active');
         $service = $this->adminService();
 
         try {
@@ -169,14 +165,14 @@ final class AdminControlCenterTest extends CIUnitTestCase
 
         $this->seeInDatabase('users', [
             'id' => $adminId,
-            'role' => 'admin',
+            'role' => 'super_admin',
             'status' => 'active',
         ]);
     }
 
     public function testInvitationUpdateAndPaginationDoNotExposePlaintextCodes(): void
     {
-        $adminId = $this->createUser('invitecontrol', 'admin', 'active');
+        $adminId = $this->createUser('invitecontrol', 'super_admin', 'active');
         $service = new InvitationService(db: $this->db);
         $codeOne = $service->generatePlainCode();
         $codeTwo = $service->generatePlainCode();
@@ -229,6 +225,7 @@ final class AdminControlCenterTest extends CIUnitTestCase
 
         $this->assertIsInt($id);
 
+        (new \App\Models\UserProfileModel())->insert(['user_id' => $id, 'email_verified_at' => date('Y-m-d H:i:s')]);
         return $id;
     }
 

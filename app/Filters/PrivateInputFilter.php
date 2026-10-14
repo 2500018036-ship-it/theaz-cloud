@@ -16,8 +16,21 @@ class PrivateInputFilter implements FilterInterface
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {
         $response->setHeader('Cache-Control', 'no-store, private');
+        $response->setHeader('X-CSRF-TOKEN', csrf_hash());
         if (in_array(trim($request->getUri()->getPath(), '/'), ['health', 'ready'], true)) {
             return null;
+        }
+        if ($request->getHeaderLine('X-Cloud-Frame') === '1' && str_contains($response->getHeaderLine('Content-Type'), 'text/html')) {
+            $body = $response->getBody();
+            if (str_contains($body, 'id="cloud-shell"')) {
+                $body = preg_replace('~<script\b[^>]*>.*?</script>~is', '', $body);
+                $body = preg_replace_callback('~<head>.*?</head>~is', static function ($match) {
+                    preg_match('~<title>.*?</title>~is', $match[0], $title);
+                    return '<head>' . ($title[0] ?? '') . '</head>';
+                }, $body);
+                $response->setBody($body);
+                $response->setHeader('Vary', 'X-Cloud-Frame');
+            }
         }
         $session = session();
         $input = $session->get('_ci_old_input');

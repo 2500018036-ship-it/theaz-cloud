@@ -164,79 +164,14 @@ class SettingsService
             throw new \DomainException('Email address is already registered.');
         }
 
-        $this->profileFor($userId);
-        $token = bin2hex(random_bytes(32));
-        $expires = Time::now()->addHours(24)->toDateTimeString();
-        $verificationUrl = site_url('settings/email/verify/' . $token);
-
-        $this->profiles->update($userId, [
-            'pending_email'            => $newEmail,
-            'pending_email_token_hash' => hash('sha256', $token),
-            'pending_email_expires_at' => $expires,
-        ]);
-
-        $locale = $this->localeForUser($userId);
-        $body = lang('App.email.verifyChangeIntro', [], $locale)
-            . "\n\n"
-            . lang('App.email.verifyFallback', [], $locale)
-            . "\n\n"
-            . $verificationUrl
-            . "\n\n"
-            . lang('App.email.verifyExpires', [$expires], $locale);
-        $this->notifications->queueEmail($userId, $newEmail, 'email_verification', $userId, lang('App.email.verifySubject', [], $locale), $body);
-        $this->activity->record($userId, 'settings.email.request', 'success', ['type' => 'user', 'id' => $userId], [
-            'email_hash' => hash('sha256', $newEmail),
-            'expires_at' => $expires,
-        ]);
-
-        return [
-            'pending_email' => $newEmail,
-            'expires_at'    => $expires,
-        ];
+        $result = (new EmailVerificationService($this->db))->issue($userId, $newEmail, 'email_change_verification');
+        return ['pending_email' => $newEmail, 'expires_at' => $result['expires_at']];
     }
 
     public function confirmEmailChange(string $token): int
     {
-        $hash = hash('sha256', trim($token));
-        $profile = $this->db->table('user_profiles')
-            ->where('pending_email_token_hash', $hash)
-            ->where('pending_email_expires_at >=', Time::now()->toDateTimeString())
-            ->get()
-            ->getRowArray();
-
-        if ($profile === null || empty($profile['pending_email'])) {
-            throw new \DomainException('Email verification link is invalid or expired.');
-        }
-
-        $userId = (int) $profile['user_id'];
-        $email = (string) $profile['pending_email'];
-        $exists = $this->db->table('users')
-            ->where('email', $email)
-            ->where('id !=', $userId)
-            ->countAllResults() > 0;
-        if ($exists) {
-            throw new \DomainException('Email address is already registered.');
-        }
-
-        $this->db->transBegin();
-
-        try {
-            $this->users->update($userId, ['email' => $email]);
-            $this->profiles->update($userId, [
-                'pending_email'            => null,
-                'pending_email_token_hash' => null,
-                'pending_email_expires_at' => null,
-                'email_verified_at'        => Time::now()->toDateTimeString(),
-            ]);
-            $this->db->transCommit();
-        } catch (\Throwable $exception) {
-            $this->db->transRollback();
-
-            throw $exception;
-        }
-
+        $userId = (new EmailVerificationService($this->db))->confirm($token);
         $this->activity->record($userId, 'settings.email.confirm', 'success', ['type' => 'user', 'id' => $userId]);
-
         return $userId;
     }
 

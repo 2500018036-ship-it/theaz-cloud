@@ -11,7 +11,7 @@ $variant = $variant ?? 'primary';
         <div class="toast-body">
           <strong><?= esc($title) ?>:</strong> <?= esc($message) ?>
         </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="<?= esc(lang('UI.t7d9eb7acb13e'), 'attr') ?>"></button>
       </div>
     </div>
   </div>

@@ -29,8 +29,8 @@ class InvitationsController extends BaseController
             'pageTitle'   => 'Invitations',
             'activeMenu'  => 'admin.invitations',
             'breadcrumbs' => [
-                ['label' => 'Administration'],
-                ['label' => 'Invitations'],
+                ['label' => lang('UI.t4b42c6690ebe')],
+                ['label' => lang('UI.t14210e691c87')],
             ],
             'currentUser' => $this->currentUser(),
             'invitations' => $result['items'],
@@ -53,13 +53,13 @@ class InvitationsController extends BaseController
         ];
 
         if (! $this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/invitations')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $expiresAt = $this->normalizedExpiry((string) $this->request->getPost('expires_at'));
         if ($expiresAt === false) {
             return redirect()
-                ->back()
+                ->to('/admin/invitations')
                 ->withInput()
                 ->with('error', 'Expiration must be a valid future date and time.');
         }
@@ -93,7 +93,7 @@ class InvitationsController extends BaseController
             ]);
 
             return redirect()
-                ->back()
+                ->to('/admin/invitations')
                 ->withInput()
                 ->with('error', 'Invitation code could not be created. Please try again.');
         }
@@ -186,6 +186,17 @@ class InvitationsController extends BaseController
         return redirect()
             ->to('/admin/invitations')
             ->with('message', 'Invitation revoked.');
+    }
+
+    public function delete(int $id): RedirectResponse
+    {
+        try {
+            $deleted = (new InvitationService())->archive($id, $this->currentUserId() ?? 0);
+            return redirect()->to('/admin/invitations')->with($deleted ? 'message' : 'error',
+                $deleted ? 'Invitation deleted.' : 'Only expired or revoked invitations can be deleted.');
+        } catch (\Throwable) {
+            return redirect()->to('/admin/invitations')->with('error', 'Invitation could not be deleted.');
+        }
     }
 
     private function normalizedExpiry(string $expiresAt, bool $allowPast = false): string|false|null

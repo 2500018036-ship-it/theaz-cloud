@@ -37,7 +37,7 @@ class UserModel extends Model
         'username'      => 'required|min_length[3]|max_length[80]|regex_match[/\A[a-zA-Z0-9._-]+\z/]|is_unique[users.username,id,{id}]',
         'email'         => 'required|valid_email|max_length[254]|is_unique[users.email,id,{id}]',
         'password_hash' => 'required|max_length[255]',
-        'role'          => 'required|in_list[super_admin,admin,user]',
+        'role'          => 'required|in_list[super_admin,user]',
         'status'        => 'required|in_list[active,inactive,suspended,pending_verification]',
     ];
 

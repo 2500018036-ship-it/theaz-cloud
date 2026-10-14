@@ -57,51 +57,51 @@ $detailsAttributes = sprintf(
 );
 ?>
 <div class="dropdown d-inline-block drive-action-menu">
-  <button class="btn btn-sm btn-light-secondary" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false" aria-label="Item actions">
+  <button class="btn btn-sm btn-light-secondary" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false" aria-label="<?= esc(lang('UI.ta145120d719e'), 'attr') ?>">
     <i class="ti ti-dots-vertical"></i>
   </button>
   <ul class="dropdown-menu dropdown-menu-end">
     <?php if ($section === 'trash'): ?>
       <li>
         <button type="button" class="dropdown-item" data-drive-details <?= $detailsAttributes ?>>
-          <i class="ti ti-info-circle me-2"></i>Details
+          <i class="ti ti-info-circle me-2"></i><?= esc(lang('UI.t45989de49fb7')) ?>
         </button>
       </li>
       <li>
-        <button type="button" class="dropdown-item text-success" data-bs-toggle="modal" data-bs-target="#confirm-modal" data-drive-confirm data-action="<?= site_url('drive/items/' . $itemId . '/restore') ?>" data-title="Restore item" data-message="Restore <?= esc($itemName, 'attr') ?> to My Drive?" data-submit-label="Restore" data-submit-class="btn-success">
-          <i class="ti ti-rotate-clockwise me-2"></i>Restore
+        <button type="button" class="dropdown-item text-success" data-bs-toggle="modal" data-bs-target="#confirm-modal" data-drive-confirm data-action="<?= site_url('drive/items/' . $itemId . '/restore') ?>" data-title="<?= esc(lang('UI.t49abac3764b4'), 'attr') ?>" data-message="Restore <?= esc($itemName, 'attr') ?> to My Drive?" data-submit-label="Restore" data-submit-class="btn-success">
+          <i class="ti ti-rotate-clockwise me-2"></i><?= esc(lang('UI.ta76e13b98392')) ?>
         </button>
       </li>
       <li><hr class="dropdown-divider"></li>
       <li>
-        <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#confirm-modal" data-drive-confirm data-action="<?= site_url('drive/items/' . $itemId . '/destroy') ?>" data-title="Delete permanently" data-message="Permanently delete <?= esc($itemName, 'attr') ?>? This cannot be undone." data-submit-label="Delete permanently" data-submit-class="btn-danger">
-          <i class="ti ti-trash-x me-2"></i>Delete permanently
+        <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#confirm-modal" data-drive-confirm data-action="<?= site_url('drive/items/' . $itemId . '/destroy') ?>" data-title="<?= esc(lang('UI.t280b10c89cc4'), 'attr') ?>" data-message="Permanently delete <?= esc($itemName, 'attr') ?>? This cannot be undone." data-submit-label="Delete permanently" data-submit-class="btn-danger">
+          <i class="ti ti-trash-x me-2"></i><?= esc(lang('UI.t280b10c89cc4')) ?>
         </button>
       </li>
     <?php else: ?>
       <?php if ($itemType === 'folder'): ?>
         <li>
           <a class="dropdown-item" href="<?= site_url($folderOpenPath . '?folder=' . $itemId) ?>">
-            <i class="ti ti-folder-open me-2"></i>Open
+            <i class="ti ti-folder-open me-2"></i><?= esc(lang('UI.ted077f3d8125')) ?>
           </a>
         </li>
       <?php endif; ?>
       <?php if ($itemType === 'file' && $isPreviewable($item)): ?>
         <li>
           <a class="dropdown-item" href="<?= site_url('drive/items/' . $itemId . '/preview') ?>" data-drive-preview>
-            <i class="ti ti-eye me-2"></i>Preview
+            <i class="ti ti-eye me-2"></i><?= esc(lang('UI.t324b134f57c7')) ?>
           </a>
         </li>
       <?php endif; ?>
       <?php if ($itemType === 'file'): ?>
         <li>
           <a class="dropdown-item" href="<?= site_url('drive/items/' . $itemId . '/download') ?>">
-            <i class="ti ti-download me-2"></i>Download
+            <i class="ti ti-download me-2"></i><?= esc(lang('UI.td6eafe823591')) ?>
           </a>
         </li>
         <li>
           <a class="dropdown-item" href="<?= site_url('drive/items/' . $itemId . '/versions') ?>">
-            <i class="ti ti-history me-2"></i>Versions
+            <i class="ti ti-history me-2"></i><?= esc(lang('UI.tf89ea27036ac')) ?>
           </a>
         </li>
       <?php endif; ?>
@@ -120,7 +120,7 @@ $detailsAttributes = sprintf(
       <?php if ($canManageShares): ?>
         <li>
           <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#share-modal" data-drive-share data-action="<?= site_url('drive/items/' . $itemId . '/shares') ?>" data-name="<?= esc($itemName, 'attr') ?>" data-shares="<?= esc((string) $sharesJson, 'attr') ?>">
-            <i class="ti ti-share me-2"></i>Share
+            <i class="ti ti-share me-2"></i><?= esc(lang('UI.t29887a5ff984')) ?>
           </button>
         </li>
       <?php endif; ?>
@@ -130,32 +130,32 @@ $detailsAttributes = sprintf(
       <?php if ($canEdit): ?>
         <li>
           <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#rename-modal" data-drive-rename data-action="<?= site_url('drive/items/' . $itemId . '/rename') ?>" data-name="<?= esc($itemName, 'attr') ?>">
-            <i class="ti ti-pencil me-2"></i>Rename
+            <i class="ti ti-pencil me-2"></i><?= esc(lang('UI.t3064d79a295c')) ?>
           </button>
         </li>
       <?php endif; ?>
       <?php if ($isOwner): ?>
         <li>
-          <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#target-modal" data-drive-target data-title="Move" data-action="<?= site_url('drive/items/' . $itemId . '/move') ?>">
-            <i class="ti ti-arrows-move me-2"></i>Move
+          <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#target-modal" data-drive-target data-title="<?= esc(lang('UI.t6ecc3df6bffd'), 'attr') ?>" data-action="<?= site_url('drive/items/' . $itemId . '/move') ?>">
+            <i class="ti ti-arrows-move me-2"></i><?= esc(lang('UI.t6ecc3df6bffd')) ?>
           </button>
         </li>
         <li>
-          <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#target-modal" data-drive-target data-title="Copy" data-action="<?= site_url('drive/items/' . $itemId . '/copy') ?>">
-            <i class="ti ti-copy me-2"></i>Copy
+          <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#target-modal" data-drive-target data-title="<?= esc(lang('UI.te21f935f11d7'), 'attr') ?>" data-action="<?= site_url('drive/items/' . $itemId . '/copy') ?>">
+            <i class="ti ti-copy me-2"></i><?= esc(lang('UI.te21f935f11d7')) ?>
           </button>
         </li>
       <?php endif; ?>
       <li>
         <button type="button" class="dropdown-item" data-drive-details <?= $detailsAttributes ?>>
-          <i class="ti ti-info-circle me-2"></i>Details
+          <i class="ti ti-info-circle me-2"></i><?= esc(lang('UI.t45989de49fb7')) ?>
         </button>
       </li>
       <?php if ($canEdit): ?>
         <li><hr class="dropdown-divider"></li>
         <li>
-          <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#confirm-modal" data-drive-confirm data-action="<?= site_url('drive/items/' . $itemId . '/delete') ?>" data-title="Move to trash" data-message="Move <?= esc($itemName, 'attr') ?> to Trash?" data-submit-label="Move to trash" data-submit-class="btn-danger">
-            <i class="ti ti-trash me-2"></i>Trash
+          <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#confirm-modal" data-drive-confirm data-action="<?= site_url('drive/items/' . $itemId . '/delete') ?>" data-title="<?= esc(lang('UI.tb250a454877d'), 'attr') ?>" data-message="Move <?= esc($itemName, 'attr') ?> to Trash?" data-submit-label="Move to trash" data-submit-class="btn-danger">
+            <i class="ti ti-trash me-2"></i><?= esc(lang('UI.tc560122ac470')) ?>
           </button>
         </li>
       <?php endif; ?>

@@ -39,6 +39,10 @@ class AuthFilter implements FilterInterface
 
                 return redirect()->to('/login')->with('error', 'Your account is not active. Please sign in again.');
             }
+            if ((new \App\Libraries\EmailVerificationService())->requiresVerification($user)) {
+                (new AuthService())->logout();
+                return redirect()->to('/login')->with('error', 'Please verify your email address before signing in.');
+            }
 
             session()->set([
                 'username' => $user['username'],

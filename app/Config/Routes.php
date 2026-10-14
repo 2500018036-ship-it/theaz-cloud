@@ -15,8 +15,6 @@ $routes->group('', ['filter' => 'guest'], static function (RouteCollection $rout
     $routes->post('login', 'AuthController::login');
     $routes->get('register', 'AuthController::registerForm');
     $routes->post('register', 'AuthController::register');
-    $routes->get('admin-invitations/activate/(:segment)', 'AdminInvitationActivationController::form/$1');
-    $routes->post('admin-invitations/activate/(:segment)', 'AdminInvitationActivationController::activate/$1');
 });
 
 $routes->get('email/verify/(:segment)', 'AuthController::verifyEmail/$1');
@@ -38,6 +36,7 @@ $routes->group('settings', ['filter' => 'auth'], static function (RouteCollectio
 });
 
 $routes->group('notifications', ['filter' => 'auth'], static function (RouteCollection $routes): void {
+    $routes->get('summary', 'NotificationsController::summary');
     $routes->get('/', 'NotificationsController::index');
     $routes->post('read-all', 'NotificationsController::markAllRead');
     $routes->post('(:num)/read', 'NotificationsController::markRead/$1');
@@ -84,16 +83,9 @@ $routes->group('drive', ['filter' => 'auth'], static function (RouteCollection $
 
 $routes->group('admin', ['filter' => 'admin'], static function (RouteCollection $routes): void {
     $routes->get('dashboard', 'Admin\DashboardController::index');
-    $routes->get('management', 'Admin\ManagementController::index');
-    $routes->post('management/admins', 'Admin\ManagementController::createAdmin');
-    $routes->post('management/admins/(:num)/permissions', 'Admin\ManagementController::updatePermissions/$1');
-    $routes->post('management/invitations', 'Admin\ManagementController::invite');
-    $routes->post('management/invitations/(:num)/resend', 'Admin\ManagementController::resendInvitation/$1');
-    $routes->post('management/invitations/(:num)/revoke', 'Admin\ManagementController::revokeInvitation/$1');
     $routes->get('users', 'Admin\UsersController::index');
     $routes->get('users/(:num)', 'Admin\UsersController::show/$1');
     $routes->post('users/(:num)/status', 'Admin\UsersController::updateStatus/$1');
-    $routes->post('users/(:num)/role', 'Admin\UsersController::updateRole/$1');
     $routes->post('users/(:num)/quota', 'Admin\UsersController::updateQuota/$1');
     $routes->get('storage', 'Admin\StorageController::index');
     $routes->get('settings', 'Admin\SettingsController::index');
@@ -109,5 +101,6 @@ $routes->group('admin', ['filter' => 'admin'], static function (RouteCollection 
     $routes->post('audit/(:num)/delete', 'Admin\AuditController::delete/$1');
     $routes->post('invitations', 'Admin\InvitationsController::create');
     $routes->post('invitations/(:num)/update', 'Admin\InvitationsController::update/$1');
+    $routes->post('invitations/(:num)/delete', 'Admin\InvitationsController::delete/$1');
     $routes->post('invitations/(:num)/revoke', 'Admin\InvitationsController::revoke/$1');
 });

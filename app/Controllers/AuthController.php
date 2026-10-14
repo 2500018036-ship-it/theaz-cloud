@@ -6,7 +6,6 @@ use App\Libraries\AuthService;
 use App\Libraries\ActivityLogger;
 use App\Libraries\EmailVerificationService;
 use App\Libraries\InvitationService;
-use App\Libraries\QueuedEmailDeliveryService;
 use App\Libraries\SystemSettingsService;
 use App\Models\UserModel;
 use CodeIgniter\HTTP\RedirectResponse;
@@ -18,7 +17,7 @@ class AuthController extends BaseController
     public function loginForm(): string
     {
         return view('auth/login', [
-            'title' => 'Login',
+            'title' => lang('UI.t9d6322c1f4d9'),
         ]);
     }
 
@@ -35,7 +34,7 @@ class AuthController extends BaseController
             ]);
 
             return redirect()
-                ->back()
+                ->to('/login')
                 ->withInput()
                 ->with('error', 'Too many login attempts. Please wait before trying again.');
         }
@@ -51,7 +50,7 @@ class AuthController extends BaseController
                 'identifier_hash' => hash('sha256', mb_strtolower($identifier)),
             ]);
 
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/login')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $result = (new AuthService())->attemptLogin(
@@ -71,7 +70,7 @@ class AuthController extends BaseController
                 'identifier_hash' => hash('sha256', mb_strtolower($identifier)),
             ]);
 
-            return redirect()->back()->withInput()->with('error', $message);
+            return redirect()->to('/login')->withInput()->with('error', $message);
         }
 
         $auth = new AuthService();
@@ -84,7 +83,7 @@ class AuthController extends BaseController
     public function registerForm(): string
     {
         return view('auth/register', [
-            'title' => 'Register',
+            'title' => lang('UI.tbb7234ec1245'),
         ]);
     }
 
@@ -100,18 +99,14 @@ class AuthController extends BaseController
         ];
 
         if (! $this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/register')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $db = Database::connect();
         $users = new UserModel();
         $invitations = new InvitationService(db: $db);
-        $settings = new SystemSettingsService($db);
-        $requiresVerification = ! config(Auth::class)->emailVerificationDeferred
-            && $settings->getBool('email_verification_required', false);
+        $requiresVerification = ! config(Auth::class)->emailVerificationDeferred;
 
-        $verificationQueueId = null;
-        $verificationSent = false;
         $db->transBegin();
 
         try {
@@ -120,7 +115,7 @@ class AuthController extends BaseController
                 $db->transRollback();
 
                 return redirect()
-                    ->back()
+                    ->to('/register')
                     ->withInput()
                     ->with('error', 'Invitation code is invalid, expired, revoked, or already used.');
             }
@@ -146,9 +141,9 @@ class AuthController extends BaseController
 
             $invitations->attachAcceptedUser((int) $invitation['id'], $userId);
             if ($requiresVerification) {
-                $verification = (new EmailVerificationService($db))->issue($userId, mb_strtolower(trim((string) $this->request->getPost('email'))));
-                $verificationQueueId = (int) ($verification['queue_id'] ?? 0);
+                (new EmailVerificationService($db))->issue($userId, mb_strtolower(trim((string) $this->request->getPost('email'))));
             }
+            if ($db->transStatus() === false) { throw new \RuntimeException('Registration could not be saved.'); }
             $db->transCommit();
         } catch (\Throwable $exception) {
             $db->transRollback();
@@ -156,22 +151,14 @@ class AuthController extends BaseController
             log_message('error', 'Registration failed: {message}', ['message' => $exception->getMessage()]);
 
             return redirect()
-                ->back()
+                ->to('/register')
                 ->withInput()
                 ->with('error', 'Registration could not be completed. Please check your details and try again.');
         }
 
-        if ($verificationQueueId !== null && $verificationQueueId > 0) {
-            try {
-                $verificationSent = (bool) (new QueuedEmailDeliveryService())->sendById($verificationQueueId)['sent'];
-            } catch (\Throwable $exception) {
-                log_message('error', 'Verification email delivery failed: {message}', ['message' => $exception->getMessage()]);
-            }
-        }
-
         return redirect()
             ->to('/login')
-            ->with('message', $this->registrationSuccessMessage($requiresVerification, $verificationSent));
+            ->with('message', $requiresVerification ? lang('App.email.registrationQueued', [mb_strtolower(trim((string) $this->request->getPost('email')))]) : 'Account created. You can sign in now.');
     }
 
     public function verifyEmail(string $token): RedirectResponse
@@ -181,7 +168,7 @@ class AuthController extends BaseController
 
             return redirect()->to('/login')->with('message', 'Email verified. You can sign in now.');
         } catch (\Throwable $exception) {
-            return redirect()->to('/login')->with('error', $exception->getMessage());
+            return redirect()->to('/login')->with('error', lang('App.email.invalidLink'));
         }
     }
 
@@ -195,10 +182,7 @@ class AuthController extends BaseController
         }
 
         try {
-            $verification = (new EmailVerificationService())->resendForIdentifier($identifier);
-            if (is_array($verification) && isset($verification['queue_id'])) {
-                (new QueuedEmailDeliveryService())->sendById((int) $verification['queue_id']);
-            }
+            (new EmailVerificationService())->resendForIdentifier($identifier);
         } catch (\Throwable $exception) {
             log_message('error', 'Verification resend failed: {message}', ['message' => $exception->getMessage()]);
         }
@@ -233,16 +217,4 @@ class AuthController extends BaseController
         }
     }
 
-    private function registrationSuccessMessage(bool $requiresVerification, bool $verificationSent): string
-    {
-        if (! $requiresVerification) {
-            return 'Account created. You can sign in now.';
-        }
-
-        if ($verificationSent) {
-            return 'Registration successful. We sent a verification email. Please verify your email before signing in.';
-        }
-
-        return 'Registration successful. Your verification email is queued; please check your inbox shortly before signing in.';
-    }
 }

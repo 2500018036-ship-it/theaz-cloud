@@ -20,8 +20,8 @@ class StorageController extends BaseController
             'pageTitle'   => 'Storage',
             'activeMenu'  => 'admin.storage',
             'breadcrumbs' => [
-                ['label' => 'Administration'],
-                ['label' => 'Storage'],
+                ['label' => lang('UI.t4b42c6690ebe')],
+                ['label' => lang('UI.ta69c4dece144')],
             ],
             'currentUser' => [
                 'username' => session('username'),

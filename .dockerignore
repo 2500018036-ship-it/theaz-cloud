@@ -13,6 +13,7 @@ writable/debugbar/*
 writable/logs/*
 writable/session/*
 writable/uploads/*
+writable/profile-avatars/
 storage/private/*
 build/
 system/

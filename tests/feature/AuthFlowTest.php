@@ -316,6 +316,8 @@ final class AuthFlowTest extends CIUnitTestCase
             'storage_used_bytes'  => 0,
         ], true));
 
+        $verified = $users->where('username', 'loginuser')->first();
+        (new \App\Models\UserProfileModel())->insert(['user_id' => $verified['id'], 'email_verified_at' => date('Y-m-d H:i:s')]);
         $auth = new AuthService($users);
 
         $this->assertTrue($auth->attemptLogin('loginuser', 'correct-password')['ok']);
@@ -349,7 +351,7 @@ final class AuthFlowTest extends CIUnitTestCase
             'username'            => 'adminlogin',
             'email'               => 'adminlogin@example.test',
             'password_hash'       => password_hash('correct-password', PASSWORD_DEFAULT),
-            'role'                => 'admin',
+            'role'                => 'super_admin',
             'status'              => 'active',
             'storage_quota_bytes' => config(Auth::class)->defaultQuotaBytes,
             'storage_used_bytes'  => 0,
@@ -362,7 +364,7 @@ final class AuthFlowTest extends CIUnitTestCase
 
         $response->assertRedirectTo('/admin/dashboard');
         $response->assertSessionHas('is_logged_in', true);
-        $response->assertSessionHas('role', 'admin');
+        $response->assertSessionHas('role', 'super_admin');
         $this->assertTrue(session()->didRegenerate);
     }
 
@@ -405,7 +407,7 @@ final class AuthFlowTest extends CIUnitTestCase
         $result = (new AdminFilter())->before(service('request'));
 
         $this->assertInstanceOf(ResponseInterface::class, $result);
-        $this->assertSame(403, $result->getStatusCode());
+        $this->assertSame(302, $result->getStatusCode());
     }
 
     public function testAuthFilterRejectsAdminAccessToPersonalDrive(): void
@@ -414,7 +416,7 @@ final class AuthFlowTest extends CIUnitTestCase
             'username'            => 'driveblockedadmin',
             'email'               => 'driveblockedadmin@example.test',
             'password_hash'       => password_hash('correct-password', PASSWORD_DEFAULT),
-            'role'                => 'admin',
+            'role'                => 'super_admin',
             'status'              => 'active',
             'storage_quota_bytes' => 0,
             'storage_used_bytes'  => 0,

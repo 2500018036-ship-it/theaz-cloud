@@ -104,6 +104,8 @@ return [
         'shareRevokedBody' => 'Akses ke "{0}" telah dicabut.',
     ],
     'email' => [
+        'registrationQueued' => 'Registrasi berhasil. Periksa email {0} untuk memverifikasi akun sebelum masuk. Email sedang dikirim; kirim ulang jika belum diterima.',
+        'invalidLink' => 'Tautan verifikasi tidak valid, sudah digunakan, atau kedaluwarsa. Minta email baru.',
         'verifySubject' => 'Verifikasi email Theaz Cloud Anda',
         'verifyAdminSubject' => 'Verifikasi email administrator Anda',
         'verifyGreeting' => 'Halo {0},',

@@ -29,8 +29,8 @@ class NotificationsController extends BaseController
             'pageTitle'   => 'Notifications',
             'activeMenu'  => 'notifications',
             'breadcrumbs' => [
-                ['label' => 'Workspace'],
-                ['label' => 'Notifications'],
+                ['label' => lang('UI.t87bb59ba2f92')],
+                ['label' => lang('UI.t788011833a5a')],
             ],
             'currentUser' => $this->currentUser(),
             'notifications' => $result['items'],
@@ -47,6 +47,11 @@ class NotificationsController extends BaseController
         $this->notifications->markRead($this->currentUserId(), $id);
 
         return redirect()->to('/notifications')->with('message', 'Notification marked as read.');
+    }
+
+    public function summary(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        return $this->response->setJSON($this->notifications->summary($this->currentUserId()));
     }
 
     public function markAllRead(): RedirectResponse

@@ -76,8 +76,8 @@ class DriveController extends BaseController
             'pageTitle'   => 'Activity',
             'activeMenu'  => 'activity',
             'breadcrumbs' => [
-                ['label' => 'Workspace'],
-                ['label' => 'Activity'],
+                ['label' => lang('UI.t87bb59ba2f92')],
+                ['label' => lang('UI.t38da1505ca83')],
             ],
             'currentUser' => $this->currentUser(),
             'logs'        => $result['items'],
@@ -103,9 +103,9 @@ class DriveController extends BaseController
                 'pageTitle'   => 'Version History',
                 'activeMenu'  => 'drive',
                 'breadcrumbs' => [
-                    ['label' => 'My Drive', 'url' => site_url('drive')],
+                    ['label' => lang('UI.t428d9cf8159f'), 'url' => site_url('drive')],
                     ['label' => $result['item']['name']],
-                    ['label' => 'Versions'],
+                    ['label' => lang('UI.tf89ea27036ac')],
                 ],
                 'currentUser' => $this->currentUser(),
                 'item'        => $result['item'],

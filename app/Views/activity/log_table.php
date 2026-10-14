@@ -48,27 +48,27 @@ $urlWith = static function (array $overrides = []) use ($basePath, $query): stri
   <div class="card-header">
     <div class="row g-3 align-items-end">
       <div class="col-lg-4">
-        <h5 class="mb-1">Activity Log</h5>
-        <p class="text-muted mb-0">Important events are paginated and filtered without exposing secrets.</p>
+        <h5 class="mb-1"><?= esc(lang('UI.t315dfb75f23c')) ?></h5>
+        <p class="text-muted mb-0"><?= esc(lang('UI.t19911dbcadcd')) ?></p>
       </div>
       <div class="col-lg-8">
         <form action="<?= esc($basePath) ?>" method="get" class="row g-2 justify-content-lg-end">
           <div class="col-md-4">
-            <input type="search" name="q" class="form-control form-control-sm" value="<?= esc($query['q'] ?? '') ?>" placeholder="Search activity">
+            <input type="search" name="q" class="form-control form-control-sm" value="<?= esc($query['q'] ?? '') ?>" placeholder="<?= esc(lang('UI.t6dfa792fd02a'), 'attr') ?>">
           </div>
           <div class="col-md-3">
-            <input type="text" name="action" class="form-control form-control-sm" value="<?= esc($query['action'] ?? '') ?>" placeholder="Action">
+            <input type="text" name="action" class="form-control form-control-sm" value="<?= esc($query['action'] ?? '') ?>" placeholder="<?= esc(lang('UI.t64cff1319d2f'), 'attr') ?>">
           </div>
           <div class="col-md-3">
             <select name="status" class="form-select form-select-sm">
-              <option value="">All status</option>
-              <option value="success"<?= ($query['status'] ?? '') === 'success' ? ' selected' : '' ?>>Success</option>
-              <option value="failure"<?= ($query['status'] ?? '') === 'failure' ? ' selected' : '' ?>>Failure</option>
+              <option value=""><?= esc(lang('UI.t32b9b2c4de19')) ?></option>
+              <option value="success"<?= ($query['status'] ?? '') === 'success' ? ' selected' : '' ?>><?= esc(lang('UI.tc88a0b907419')) ?></option>
+              <option value="failure"<?= ($query['status'] ?? '') === 'failure' ? ' selected' : '' ?>><?= esc(lang('UI.t7031edbcf9c4')) ?></option>
             </select>
           </div>
           <div class="col-md-auto">
-            <button type="submit" class="btn btn-sm btn-primary"><i class="ti ti-filter me-1"></i>Apply</button>
-            <a href="<?= esc($basePath) ?>" class="btn btn-sm btn-light-secondary"><i class="ti ti-x me-1"></i>Reset Filters</a>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="ti ti-filter me-1"></i><?= esc(lang('UI.t31e392d1c037')) ?></button>
+            <a href="<?= esc($basePath) ?>" class="btn btn-sm btn-light-secondary"><i class="ti ti-x me-1"></i><?= esc(lang('UI.t660f3d76f4f2')) ?></a>
           </div>
         </form>
       </div>
@@ -78,7 +78,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $query): stri
         <form action="<?= site_url('admin/audit/clear') ?>" method="post" data-admin-confirm="Clear all activity log entries? This cannot be undone.">
           <?= csrf_field() ?>
           <button type="submit" class="btn btn-sm btn-light-danger">
-            <i class="ti ti-trash-x me-1"></i>Clear Logs
+            <i class="ti ti-trash-x me-1"></i><?= esc(lang('UI.t65e507837886')) ?>
           </button>
         </form>
       </div>
@@ -88,22 +88,22 @@ $urlWith = static function (array $overrides = []) use ($basePath, $query): stri
     <?php if ($logs === []): ?>
       <?= view('components/ui/empty_state', [
           'icon' => 'ti ti-activity',
-          'title' => 'No activity found',
-          'message' => 'Events will appear here as people use the workspace.',
+          'title' => lang('UI.t7536b283b120'),
+          'message' => lang('UI.t4ac56ddee136'),
       ]) ?>
     <?php else: ?>
       <div class="table-responsive">
         <table class="table align-middle">
           <thead>
             <tr>
-              <th>Time</th>
-              <th>Actor</th>
-              <th>Action</th>
-              <th>Target</th>
-              <th>Status</th>
-              <th>Details</th>
+              <th><?= esc(lang('UI.t33b93476cf59')) ?></th>
+              <th><?= esc(lang('UI.t449995c4fe8f')) ?></th>
+              <th><?= esc(lang('UI.t64cff1319d2f')) ?></th>
+              <th><?= esc(lang('UI.t978354db0c00')) ?></th>
+              <th><?= esc(lang('UI.t920e413c7d41')) ?></th>
+              <th><?= esc(lang('UI.t45989de49fb7')) ?></th>
               <?php if ($canDelete): ?>
-                <th class="text-end">Action</th>
+                <th class="text-end"><?= esc(lang('UI.t64cff1319d2f')) ?></th>
               <?php endif; ?>
             </tr>
           </thead>
@@ -119,7 +119,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $query): stri
                 <td>
                   <div class="fw-semibold"><?= esc((string) $actor) ?></div>
                   <?php if (! empty($log['subject_username']) || ! empty($log['subject_email'])): ?>
-                    <div class="text-muted small">Subject: <?= esc((string) ($log['subject_username'] ?? $log['subject_email'])) ?></div>
+                    <div class="text-muted small"><?= esc(lang('UI.t1edf47d5fb6c')) ?> <?= esc((string) ($log['subject_username'] ?? $log['subject_email'])) ?></div>
                   <?php endif; ?>
                 </td>
                 <td><?= esc($labelAction((string) $log['action'])) ?></td>
@@ -135,7 +135,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $query): stri
                     <form action="<?= site_url('admin/audit/' . (int) $log['id'] . '/delete') ?>" method="post" class="d-inline" data-admin-confirm="Delete this activity log entry?">
                       <?= csrf_field() ?>
                       <button type="submit" class="btn btn-sm btn-light-danger">
-                        <i class="ti ti-trash me-1"></i>Delete
+                        <i class="ti ti-trash me-1"></i><?= esc(lang('UI.te2d0a54968ea')) ?>
                       </button>
                     </form>
                   </td>
@@ -148,7 +148,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $query): stri
     <?php endif; ?>
   </div>
   <div class="card-footer d-flex flex-wrap gap-2 align-items-center justify-content-between">
-    <span class="text-muted small"><?= esc((string) $pager['total']) ?> event(s)</span>
+    <span class="text-muted small"><?= esc((string) $pager['total']) ?> <?= esc(lang('UI.tc0983c1b070d')) ?></span>
     <?php if ((int) $pager['totalPages'] > 1): ?>
       <ul class="pagination mb-0">
         <?php for ($page = 1; $page <= (int) $pager['totalPages']; $page++): ?>

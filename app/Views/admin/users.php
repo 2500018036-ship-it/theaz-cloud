@@ -49,34 +49,27 @@ $urlWith = static function (array $overrides = []) use ($query): string {
   <div class="card-header">
     <div class="row g-3 align-items-end">
       <div class="col-lg-4">
-        <h5 class="mb-1">Users</h5>
-        <p class="text-muted mb-0">Manage status, role, and quota from backend-validated actions.</p>
+        <h5 class="mb-1"><?= esc(lang('UI.t6b0cc904d081')) ?></h5>
+        <p class="text-muted mb-0"><?= esc(lang('UI.te8db1e49ff92')) ?></p>
       </div>
       <div class="col-lg-8">
         <form action="<?= site_url('admin/users') ?>" method="get" class="row g-2 justify-content-lg-end">
           <div class="col-md-4">
-            <input type="search" name="q" class="form-control form-control-sm" value="<?= esc($query['q'] ?? '') ?>" placeholder="Search username or email">
+            <input type="search" name="q" class="form-control form-control-sm" value="<?= esc($query['q'] ?? '') ?>" placeholder="<?= esc(lang('UI.t054efefc16c2'), 'attr') ?>">
           </div>
-          <div class="col-md-3">
-            <select name="role" class="form-select form-select-sm">
-              <option value="">All roles</option>
-              <option value="super_admin"<?= ($query['role'] ?? '') === 'super_admin' ? ' selected' : '' ?>>Super Admin</option>
-              <option value="admin"<?= ($query['role'] ?? '') === 'admin' ? ' selected' : '' ?>>Admin</option>
-              <option value="user"<?= ($query['role'] ?? '') === 'user' ? ' selected' : '' ?>>User</option>
-            </select>
-          </div>
+
           <div class="col-md-3">
             <select name="status" class="form-select form-select-sm">
-              <option value="">All status</option>
-              <option value="active"<?= ($query['status'] ?? '') === 'active' ? ' selected' : '' ?>>Active</option>
-              <option value="pending_verification"<?= ($query['status'] ?? '') === 'pending_verification' ? ' selected' : '' ?>>Pending verification</option>
-              <option value="inactive"<?= ($query['status'] ?? '') === 'inactive' ? ' selected' : '' ?>>Inactive</option>
-              <option value="suspended"<?= ($query['status'] ?? '') === 'suspended' ? ' selected' : '' ?>>Suspended</option>
+              <option value=""><?= esc(lang('UI.t32b9b2c4de19')) ?></option>
+              <option value="active"<?= ($query['status'] ?? '') === 'active' ? ' selected' : '' ?>><?= esc(lang('UI.t92340695899b')) ?></option>
+              <option value="pending_verification"<?= ($query['status'] ?? '') === 'pending_verification' ? ' selected' : '' ?>><?= esc(lang('UI.t417a6b7e1904')) ?></option>
+              <option value="inactive"<?= ($query['status'] ?? '') === 'inactive' ? ' selected' : '' ?>><?= esc(lang('UI.tac7c949f1211')) ?></option>
+              <option value="suspended"<?= ($query['status'] ?? '') === 'suspended' ? ' selected' : '' ?>><?= esc(lang('UI.te392a3891c07')) ?></option>
             </select>
           </div>
           <div class="col-md-auto">
-            <button type="submit" class="btn btn-sm btn-primary"><i class="ti ti-filter me-1"></i>Apply</button>
-            <a href="<?= site_url('admin/users') ?>" class="btn btn-sm btn-light-secondary"><i class="ti ti-x me-1"></i>Clear</a>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="ti ti-filter me-1"></i><?= esc(lang('UI.t31e392d1c037')) ?></button>
+            <a href="<?= site_url('admin/users') ?>" class="btn btn-sm btn-light-secondary"><i class="ti ti-x me-1"></i><?= esc(lang('UI.t83b12c2216ef')) ?></a>
           </div>
         </form>
       </div>
@@ -86,20 +79,20 @@ $urlWith = static function (array $overrides = []) use ($query): string {
     <?php if ($users === []): ?>
       <?= view('components/ui/empty_state', [
           'icon' => 'ti ti-users',
-          'title' => 'No users found',
-          'message' => 'Try changing the filter or search term.',
+          'title' => lang('UI.tbf1e104fb3c8'),
+          'message' => lang('UI.t73d9005904e0'),
       ]) ?>
     <?php else: ?>
       <div class="table-responsive">
         <table class="table align-middle">
           <thead>
             <tr>
-              <th>User</th>
-              <th>Status</th>
-              <th>Role</th>
-              <th>Storage</th>
-              <th>Last Login</th>
-              <th class="text-end">Actions</th>
+              <th><?= esc(lang('UI.tb512d97e7cbf')) ?></th>
+              <th><?= esc(lang('UI.t920e413c7d41')) ?></th>
+              <th><?= esc(lang('UI.t14736a2eb9f4')) ?></th>
+              <th><?= esc(lang('UI.ta69c4dece144')) ?></th>
+              <th><?= esc(lang('UI.tb953216efc4b')) ?></th>
+              <th class="text-end"><?= esc(lang('UI.tff8059dc6752')) ?></th>
             </tr>
           </thead>
           <tbody>
@@ -116,7 +109,7 @@ $urlWith = static function (array $overrides = []) use ($query): string {
                     'admin' => 'primary text-primary',
                     default => 'secondary text-secondary',
                 };
-                $canChangeStatus = $role !== 'super_admin' || $isSuperAdmin;
+                $canChangeStatus = $role !== 'super_admin';
                 $canChangeRole = $isSuperAdmin && (int) $user['id'] !== (int) session('user_id');
               ?>
               <tr>
@@ -138,26 +131,15 @@ $urlWith = static function (array $overrides = []) use ($query): string {
                     <?php if ($canChangeStatus): ?>
                       <form action="<?= site_url('admin/users/' . $user['id'] . '/status') ?>" method="post" class="d-inline-flex gap-1" data-admin-confirm="Change this user's status?">
                         <?= csrf_field() ?>
-                        <select name="status" class="form-select form-select-sm" aria-label="Status">
-                          <?php foreach (['active', 'pending_verification', 'inactive', 'suspended'] as $option): ?>
+                        <select name="status" class="form-select form-select-sm" aria-label="<?= esc(lang('UI.t920e413c7d41'), 'attr') ?>">
+                          <?php foreach (['active', 'inactive'] as $option): ?>
                             <option value="<?= esc($option) ?>"<?= $status === $option ? ' selected' : '' ?>><?= esc($statusLabel($option)) ?></option>
                           <?php endforeach; ?>
                         </select>
-                        <button type="submit" class="btn btn-sm btn-light-primary"><i class="ti ti-device-floppy me-1"></i>Save</button>
+                        <button type="submit" class="btn btn-sm btn-light-primary"><i class="ti ti-device-floppy me-1"></i><?= esc(lang('UI.t1509f561f241')) ?></button>
                       </form>
                     <?php else: ?>
-                      <span class="text-muted small">Protected</span>
-                    <?php endif; ?>
-                    <?php if ($canChangeRole): ?>
-                      <form action="<?= site_url('admin/users/' . $user['id'] . '/role') ?>" method="post" class="d-inline-flex gap-1" data-admin-confirm="Change this user's role?">
-                        <?= csrf_field() ?>
-                        <select name="role" class="form-select form-select-sm" aria-label="Role">
-                          <option value="user"<?= $role === 'user' ? ' selected' : '' ?>>User</option>
-                          <option value="admin"<?= $role === 'admin' ? ' selected' : '' ?>>Admin</option>
-                          <option value="super_admin"<?= $role === 'super_admin' ? ' selected' : '' ?>>Super Admin</option>
-                        </select>
-                        <button type="submit" class="btn btn-sm btn-light-warning"><i class="ti ti-user-shield me-1"></i>Role</button>
-                      </form>
+                      <span class="text-muted small"><?= esc(lang('UI.tb0ed26337336')) ?></span>
                     <?php endif; ?>
                   </div>
                 </td>
@@ -169,7 +151,7 @@ $urlWith = static function (array $overrides = []) use ($query): string {
     <?php endif; ?>
   </div>
   <div class="card-footer d-flex flex-wrap gap-2 align-items-center justify-content-between">
-    <span class="text-muted small"><?= esc((string) $pager['total']) ?> user(s)</span>
+    <span class="text-muted small"><?= esc((string) $pager['total']) ?> <?= esc(lang('UI.t6eeb04b1295c')) ?></span>
     <?php if ((int) $pager['totalPages'] > 1): ?>
       <ul class="pagination mb-0">
         <?php for ($page = 1; $page <= (int) $pager['totalPages']; $page++): ?>

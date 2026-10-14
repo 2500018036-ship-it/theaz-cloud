@@ -63,14 +63,14 @@ $translateFlash = static function ($message): string {
 <?php if (session('message')): ?>
   <div class="alert alert-success alert-dismissible fade show" role="alert">
     <?= esc($translateFlash(session('message'))) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="<?= esc(lang('UI.t7d9eb7acb13e'), 'attr') ?>"></button>
   </div>
 <?php endif; ?>
 
 <?php if (session('error')): ?>
   <div class="alert alert-danger alert-dismissible fade show" role="alert">
     <?= esc($translateFlash(session('error'))) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="<?= esc(lang('UI.t7d9eb7acb13e'), 'attr') ?>"></button>
   </div>
 <?php endif; ?>
 
@@ -79,6 +79,6 @@ $translateFlash = static function ($message): string {
     <?php foreach ((array) session('errors') as $error): ?>
       <div><?= esc($translateFlash($error)) ?></div>
     <?php endforeach; ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="<?= esc(lang('UI.t7d9eb7acb13e'), 'attr') ?>"></button>
   </div>
 <?php endif; ?>

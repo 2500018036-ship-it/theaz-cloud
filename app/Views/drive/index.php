@@ -123,13 +123,13 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
       <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
         <div class="d-flex flex-wrap gap-2">
           <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#upload-modal">
-            <i class="ti ti-upload"></i> Upload
+            <i class="ti ti-upload"></i> <?= esc(lang('UI.t865e89de78d9')) ?>
           </button>
           <button type="button" class="btn btn-light-primary" data-bs-toggle="modal" data-bs-target="#folder-modal">
-            <i class="ti ti-folder-plus"></i> New Folder
+            <i class="ti ti-folder-plus"></i> <?= esc(lang('UI.tc75ba8074400')) ?>
           </button>
         </div>
-        <div class="btn-group" role="group" aria-label="View mode">
+        <div class="btn-group" role="group" aria-label="<?= esc(lang('UI.t18997f2413b5'), 'attr') ?>">
           <a class="btn btn-light<?= $viewMode === 'list' ? ' active' : '' ?>" href="<?= esc($urlWith(['view' => 'list'])) ?>"><i class="ti ti-list"></i></a>
           <a class="btn btn-light<?= $viewMode === 'grid' ? ' active' : '' ?>" href="<?= esc($urlWith(['view' => 'grid'])) ?>"><i class="ti ti-layout-grid"></i></a>
         </div>
@@ -145,7 +145,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
         <div class="d-flex align-items-center gap-2">
           <h5 class="mb-0"><?= esc($sectionLabel) ?></h5>
           <span class="badge bg-light-secondary"><?= esc((string) $pager['total']) ?></span>
-          <button class="btn btn-sm btn-light-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#drive-filters" aria-expanded="false" title="Filters">
+          <button class="btn btn-sm btn-light-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#drive-filters" aria-expanded="false" title="<?= esc(lang('UI.t546ebb8eb993'), 'attr') ?>">
             <i class="ti ti-filter f-16"></i>
           </button>
         </div>
@@ -173,28 +173,28 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
         <input type="hidden" name="sort" value="<?= esc($query['sort'] ?? 'name') ?>">
         <input type="hidden" name="dir" value="<?= esc($query['dir'] ?? 'asc') ?>">
         <div class="col-auto">
-          <label class="form-label small mb-1">Type</label>
+          <label class="form-label small mb-1"><?= esc(lang('UI.tbaaddf70fb5d')) ?></label>
           <select name="type" class="form-select form-select-sm">
-            <option value="">All</option>
-            <option value="file"<?= ($query['type'] ?? '') === 'file' ? ' selected' : '' ?>>Files</option>
-            <option value="folder"<?= ($query['type'] ?? '') === 'folder' ? ' selected' : '' ?>>Folders</option>
+            <option value=""><?= esc(lang('UI.ta52ace420f21')) ?></option>
+            <option value="file"<?= ($query['type'] ?? '') === 'file' ? ' selected' : '' ?>><?= esc(lang('UI.tabc7e9892806')) ?></option>
+            <option value="folder"<?= ($query['type'] ?? '') === 'folder' ? ' selected' : '' ?>><?= esc(lang('UI.tc4d6bb200f4c')) ?></option>
           </select>
         </div>
         <div class="col-auto">
-          <label class="form-label small mb-1">Extension</label>
+          <label class="form-label small mb-1"><?= esc(lang('UI.t395aeb955e2e')) ?></label>
           <input type="text" name="ext" class="form-control form-control-sm" value="<?= esc($query['ext'] ?? '') ?>" placeholder="e.g. pdf,docx" style="width:120px">
         </div>
         <div class="col-auto">
-          <label class="form-label small mb-1">From</label>
+          <label class="form-label small mb-1"><?= esc(lang('UI.t218197693424')) ?></label>
           <input type="date" name="date_from" class="form-control form-control-sm" value="<?= esc($query['date_from'] ?? '') ?>">
         </div>
         <div class="col-auto">
-          <label class="form-label small mb-1">To</label>
+          <label class="form-label small mb-1"><?= esc(lang('UI.tf4b06ef6d3c8')) ?></label>
           <input type="date" name="date_to" class="form-control form-control-sm" value="<?= esc($query['date_to'] ?? '') ?>">
         </div>
         <div class="col-auto">
-          <button type="submit" class="btn btn-sm btn-primary"><i class="ti ti-filter me-1"></i>Apply</button>
-          <a href="<?= esc($basePath . (in_array($section, ['drive', 'shared-with-me'], true) && $folderId !== null ? '?folder=' . $folderId : '')) ?>" class="btn btn-sm btn-light-secondary"><i class="ti ti-x me-1"></i>Clear</a>
+          <button type="submit" class="btn btn-sm btn-primary"><i class="ti ti-filter me-1"></i><?= esc(lang('UI.t31e392d1c037')) ?></button>
+          <a href="<?= esc($basePath . (in_array($section, ['drive', 'shared-with-me'], true) && $folderId !== null ? '?folder=' . $folderId : '')) ?>" class="btn btn-sm btn-light-secondary"><i class="ti ti-x me-1"></i><?= esc(lang('UI.t83b12c2216ef')) ?></a>
         </div>
       </form>
     </div>
@@ -203,16 +203,16 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
     <?php if ($items === []): ?>
       <?= view('components/ui/empty_state', [
           'icon' => $section === 'trash' ? 'ti ti-trash' : 'ti ti-folder-open',
-          'title' => 'No items found',
+          'title' => lang('UI.t949da6a3278e'),
           'message' => $canCreate ? 'Create a folder or upload files to start organizing this space.' : 'Nothing to show here yet.',
       ]) ?>
       <?php if ($canCreate): ?>
         <div class="d-flex flex-wrap gap-2 justify-content-center">
           <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#upload-modal">
-            <i class="ti ti-upload"></i> Upload
+            <i class="ti ti-upload"></i> <?= esc(lang('UI.t865e89de78d9')) ?>
           </button>
           <button type="button" class="btn btn-light-primary" data-bs-toggle="modal" data-bs-target="#folder-modal">
-            <i class="ti ti-folder-plus"></i> New Folder
+            <i class="ti ti-folder-plus"></i> <?= esc(lang('UI.tc75ba8074400')) ?>
           </button>
         </div>
       <?php endif; ?>
@@ -228,7 +228,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
                     <?php if (($item['access_role'] ?? 'owner') !== 'owner'): ?>
                       <span class="badge bg-light-info text-info"><?= esc(ucfirst((string) $item['access_role'])) ?></span>
                     <?php elseif (($item['share_count'] ?? 0) > 0): ?>
-                      <span class="badge bg-light-primary text-primary">Shared</span>
+                      <span class="badge bg-light-primary text-primary"><?= esc(lang('UI.te3c4b39d6d50')) ?></span>
                     <?php endif; ?>
                   </div>
                   <?= view('drive/partials/item_actions', [
@@ -263,12 +263,12 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
       <table class="table align-middle mb-0">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Size</th>
-              <th>Updated</th>
-              <th>Owner</th>
-              <th class="text-end">Action</th>
+              <th><?= esc(lang('UI.tdcd1d5223f73')) ?></th>
+              <th><?= esc(lang('UI.tbaaddf70fb5d')) ?></th>
+              <th><?= esc(lang('UI.t1af851907331')) ?></th>
+              <th><?= esc(lang('UI.t3a5ecca188c0')) ?></th>
+              <th><?= esc(lang('UI.t4b1b8aa3608a')) ?></th>
+              <th class="text-end"><?= esc(lang('UI.t64cff1319d2f')) ?></th>
             </tr>
           </thead>
           <tbody>
@@ -289,7 +289,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
                       <?php if (($item['access_role'] ?? 'owner') !== 'owner'): ?>
                         <span class="badge bg-light-info text-info ms-1"><?= esc(ucfirst((string) $item['access_role'])) ?></span>
                       <?php elseif (($item['share_count'] ?? 0) > 0): ?>
-                        <span class="badge bg-light-primary text-primary ms-1">Shared</span>
+                        <span class="badge bg-light-primary text-primary ms-1"><?= esc(lang('UI.te3c4b39d6d50')) ?></span>
                       <?php endif; ?>
                     </div>
                   </div>
@@ -319,7 +319,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
   <?php if (($pager['totalPages'] ?? 1) > 1): ?>
     <div class="card-footer">
       <div class="d-flex justify-content-between align-items-center">
-        <span class="text-muted small">Page <?= esc((string) $pager['page']) ?> of <?= esc((string) $pager['totalPages']) ?></span>
+        <span class="text-muted small"><?= esc(lang('UI.t0a30a815d67d')) ?> <?= esc((string) $pager['page']) ?> <?= esc(lang('UI.t28391d3bc64e')) ?> <?= esc((string) $pager['totalPages']) ?></span>
         <div class="btn-group">
           <a class="btn btn-light<?= $pager['page'] <= 1 ? ' disabled' : '' ?>" href="<?= esc($urlWith(['page' => max(1, $pager['page'] - 1)])) ?>"><i class="ti ti-chevron-left"></i></a>
           <a class="btn btn-light<?= $pager['page'] >= $pager['totalPages'] ? ' disabled' : '' ?>" href="<?= esc($urlWith(['page' => min($pager['totalPages'], $pager['page'] + 1)])) ?>"><i class="ti ti-chevron-right"></i></a>
@@ -336,20 +336,20 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
       <input type="hidden" name="parent_id" value="<?= esc((string) $folderId) ?>">
       <input type="hidden" name="context" value="<?= esc($section) ?>">
       <div class="modal-header">
-        <h5 class="modal-title">New Folder</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title"><?= esc(lang('UI.tc75ba8074400')) ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= esc(lang('UI.t7d9eb7acb13e'), 'attr') ?>"></button>
       </div>
       <div class="modal-body">
         <?php if ($activeModal === 'folder-modal' && $modalError !== ''): ?>
           <div class="alert alert-danger"><?= esc($modalError) ?></div>
         <?php endif; ?>
-        <label class="form-label" for="folder-name">Folder name</label>
+        <label class="form-label" for="folder-name"><?= esc(lang('UI.t14d34edf50ef')) ?></label>
         <input type="text" class="form-control" id="folder-name" name="name" value="<?= esc(old('name')) ?>" maxlength="190" required>
-        <div class="form-text">The folder will be created in the current location.</div>
+        <div class="form-text"><?= esc(lang('UI.te22b7e667733')) ?></div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
-        <button type="submit" class="btn btn-primary"><i class="ti ti-folder-plus me-1"></i>Create</button>
+        <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i><?= esc(lang('UI.t19766ed6ccb2')) ?></button>
+        <button type="submit" class="btn btn-primary"><i class="ti ti-folder-plus me-1"></i><?= esc(lang('UI.t4759498ac2a7')) ?></button>
       </div>
     </form>
   </div>
@@ -362,8 +362,8 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
       <input type="hidden" name="parent_id" value="<?= esc((string) $folderId) ?>">
       <input type="hidden" name="context" value="<?= esc($section) ?>">
       <div class="modal-header">
-        <h5 class="modal-title">Upload Files</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title"><?= esc(lang('UI.t990578cf23b5')) ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= esc(lang('UI.t7d9eb7acb13e'), 'attr') ?>"></button>
       </div>
       <div class="modal-body">
         <?php if ($activeModal === 'upload-modal' && ($modalError !== '' || $modalErrors !== [])): ?>
@@ -379,14 +379,14 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
             <?php endif; ?>
           </div>
         <?php endif; ?>
-        <label class="form-label" for="drive-files">Files</label>
+        <label class="form-label" for="drive-files"><?= esc(lang('UI.tabc7e9892806')) ?></label>
         <input type="file" class="form-control" id="drive-files" name="files[]" multiple required>
-        <div class="form-text">Files are stored privately and checked against your quota before saving.</div>
+        <div class="form-text"><?= esc(lang('UI.tf1d4bcf974b8')) ?></div>
         <div id="upload-file-list" class="mt-3 d-none"></div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
-        <button type="submit" class="btn btn-primary" id="upload-submit"><i class="ti ti-upload me-1"></i>Upload</button>
+        <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i><?= esc(lang('UI.t19766ed6ccb2')) ?></button>
+        <button type="submit" class="btn btn-primary" id="upload-submit"><i class="ti ti-upload me-1"></i><?= esc(lang('UI.t865e89de78d9')) ?></button>
       </div>
     </form>
   </div>
@@ -399,19 +399,19 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
       <input type="hidden" name="parent_id" value="<?= esc((string) $folderId) ?>">
       <input type="hidden" name="context" value="<?= esc($section) ?>">
       <div class="modal-header">
-        <h5 class="modal-title">Rename</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title"><?= esc(lang('UI.t3064d79a295c')) ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= esc(lang('UI.t7d9eb7acb13e'), 'attr') ?>"></button>
       </div>
       <div class="modal-body">
         <?php if ($activeModal === 'rename-modal' && $modalError !== ''): ?>
           <div class="alert alert-danger"><?= esc($modalError) ?></div>
         <?php endif; ?>
-        <label class="form-label" for="rename-name">Name</label>
+        <label class="form-label" for="rename-name"><?= esc(lang('UI.tdcd1d5223f73')) ?></label>
         <input type="text" class="form-control" id="rename-name" name="name" maxlength="190" required>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
-        <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i>Save</button>
+        <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i><?= esc(lang('UI.t19766ed6ccb2')) ?></button>
+        <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i><?= esc(lang('UI.t1509f561f241')) ?></button>
       </div>
     </form>
   </div>
@@ -424,14 +424,14 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
       <input type="hidden" name="parent_id" value="<?= esc((string) $folderId) ?>">
       <input type="hidden" name="context" value="<?= esc($section) ?>">
       <div class="modal-header">
-        <h5 class="modal-title" id="target-title">Move</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title" id="target-title"><?= esc(lang('UI.t6ecc3df6bffd')) ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= esc(lang('UI.t7d9eb7acb13e'), 'attr') ?>"></button>
       </div>
       <div class="modal-body">
         <?php if ($activeModal === 'target-modal' && $modalError !== ''): ?>
           <div class="alert alert-danger"><?= esc($modalError) ?></div>
         <?php endif; ?>
-        <label class="form-label" for="target-folder">Folder</label>
+        <label class="form-label" for="target-folder"><?= esc(lang('UI.t74ccd4330384')) ?></label>
         <select class="form-select" id="target-folder" name="target_folder_id">
           <?php foreach ($folderOptions as $option): ?>
             <option value="<?= esc((string) $option['id']) ?>"><?= esc($option['label']) ?></option>
@@ -439,8 +439,8 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
         </select>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
-        <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i>Save</button>
+        <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i><?= esc(lang('UI.t19766ed6ccb2')) ?></button>
+        <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i><?= esc(lang('UI.t1509f561f241')) ?></button>
       </div>
     </form>
   </div>
@@ -452,15 +452,15 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
       <?= csrf_field() ?>
       <input type="hidden" name="parent_id" value="<?= esc((string) $folderId) ?>">
       <div class="modal-header">
-        <h5 class="modal-title" id="confirm-title">Confirm</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title" id="confirm-title"><?= esc(lang('UI.teebdd24a77d9')) ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= esc(lang('UI.t7d9eb7acb13e'), 'attr') ?>"></button>
       </div>
       <div class="modal-body">
         <p class="mb-0" id="confirm-message"></p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
-        <button type="submit" class="btn btn-danger" id="confirm-submit"><i class="ti ti-alert-triangle me-1"></i>Confirm</button>
+        <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i><?= esc(lang('UI.t19766ed6ccb2')) ?></button>
+        <button type="submit" class="btn btn-danger" id="confirm-submit"><i class="ti ti-alert-triangle me-1"></i><?= esc(lang('UI.teebdd24a77d9')) ?></button>
       </div>
     </form>
   </div>
@@ -470,8 +470,8 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Share Item</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title"><?= esc(lang('UI.tc40f7f79e602')) ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= esc(lang('UI.t7d9eb7acb13e'), 'attr') ?>"></button>
       </div>
       <div class="modal-body">
         <?php if ($activeModal === 'share-modal' && $modalError !== ''): ?>
@@ -484,30 +484,30 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
           <input type="hidden" name="parent_id" value="<?= esc((string) $folderId) ?>">
           <input type="hidden" name="context" value="<?= esc($section) ?>">
           <div class="col-md-7">
-            <label class="form-label" for="share-recipient">User email or username</label>
+            <label class="form-label" for="share-recipient"><?= esc(lang('UI.tcc5d3095ffe6')) ?></label>
             <input type="text" class="form-control" id="share-recipient" name="recipient" autocomplete="off" required>
           </div>
           <div class="col-md-3">
-            <label class="form-label" for="share-permission">Permission</label>
+            <label class="form-label" for="share-permission"><?= esc(lang('UI.t229efc8f5263')) ?></label>
             <select class="form-select" id="share-permission" name="permission">
-              <option value="viewer">Viewer</option>
-              <option value="editor">Editor</option>
+              <option value="viewer"><?= esc(lang('UI.t678bfa6af48b')) ?></option>
+              <option value="editor"><?= esc(lang('UI.t936a161c3931')) ?></option>
             </select>
           </div>
           <div class="col-md-2 d-grid">
-            <button type="submit" class="btn btn-primary" id="share-submit"><i class="ti ti-share me-1"></i>Share</button>
+            <button type="submit" class="btn btn-primary" id="share-submit"><i class="ti ti-share me-1"></i><?= esc(lang('UI.t29887a5ff984')) ?></button>
           </div>
         </form>
 
         <hr>
         <div class="d-flex align-items-center justify-content-between mb-2">
-          <h6 class="mb-0">People with access</h6>
+          <h6 class="mb-0"><?= esc(lang('UI.t6ecf05a928e8')) ?></h6>
           <span class="badge bg-light-secondary" id="share-count">0</span>
         </div>
         <div id="share-recipient-list" class="vstack gap-2"></div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal"><i class="ti ti-check me-1"></i>Done</button>
+        <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal"><i class="ti ti-check me-1"></i><?= esc(lang('UI.t11a6767d5674')) ?></button>
       </div>
     </div>
   </div>
@@ -518,12 +518,12 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
     <div class="modal-content drive-preview-modal-content">
       <div class="modal-header">
         <div class="min-w-0">
-          <h5 class="modal-title text-truncate mb-0" id="drive-preview-title">Preview</h5>
+          <h5 class="modal-title text-truncate mb-0" id="drive-preview-title"><?= esc(lang('UI.t324b134f57c7')) ?></h5>
           <div class="text-muted small text-truncate" id="drive-preview-meta"></div>
         </div>
         <div class="d-flex align-items-center gap-2 ms-auto">
           <a class="btn btn-sm btn-light-primary d-none" id="drive-preview-download" href="#"><i class="ti ti-download"></i></a>
-          <button type="button" class="btn-close ms-1" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close ms-1" data-bs-dismiss="modal" aria-label="<?= esc(lang('UI.t7d9eb7acb13e'), 'attr') ?>"></button>
         </div>
       </div>
       <div class="modal-body drive-preview-body">
@@ -532,7 +532,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
         </div>
         <div id="drive-preview-error" class="alert alert-danger d-none mb-0"></div>
         <img id="drive-preview-image" class="drive-preview-media d-none" alt="">
-        <iframe id="drive-preview-frame" class="drive-preview-frame d-none" title="File preview"></iframe>
+        <iframe id="drive-preview-frame" class="drive-preview-frame d-none" title="<?= esc(lang('UI.t71d50aa39313'), 'attr') ?>"></iframe>
         <pre id="drive-preview-text" class="drive-preview-text d-none"></pre>
         <audio id="drive-preview-audio" class="w-100 d-none" controls></audio>
         <video id="drive-preview-video" class="drive-preview-video d-none" controls></video>
@@ -540,8 +540,8 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
           <div class="avtar avtar-s bg-light-secondary text-secondary mx-auto mb-3">
             <i class="ti ti-file-off f-20"></i>
           </div>
-          <h6 class="mb-1">Preview unavailable</h6>
-          <p class="text-muted mb-0">Download this file to open it with a compatible app.</p>
+          <h6 class="mb-1"><?= esc(lang('UI.tb99fa6c06150')) ?></h6>
+          <p class="text-muted mb-0"><?= esc(lang('UI.t3e5555423aab')) ?></p>
         </div>
       </div>
     </div>
@@ -550,33 +550,33 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
 
 <div class="offcanvas offcanvas-end" tabindex="-1" id="details-panel" aria-labelledby="details-panel-title">
   <div class="offcanvas-header">
-    <h5 class="offcanvas-title" id="details-panel-title">File Details</h5>
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    <h5 class="offcanvas-title" id="details-panel-title"><?= esc(lang('UI.tbbffb57962a3')) ?></h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="<?= esc(lang('UI.t7d9eb7acb13e'), 'attr') ?>"></button>
   </div>
   <div class="offcanvas-body">
     <div class="text-center mb-3" id="details-thumb-wrap">
       <img id="details-thumb" class="img-fluid rounded d-none" alt="Thumbnail" style="max-height:200px">
     </div>
     <dl class="row mb-0">
-      <dt class="col-sm-4">Name</dt>
+      <dt class="col-sm-4"><?= esc(lang('UI.tdcd1d5223f73')) ?></dt>
       <dd class="col-sm-8 text-break" id="details-name"></dd>
-      <dt class="col-sm-4">Type</dt>
+      <dt class="col-sm-4"><?= esc(lang('UI.tbaaddf70fb5d')) ?></dt>
       <dd class="col-sm-8" id="details-type"></dd>
-      <dt class="col-sm-4">Size</dt>
+      <dt class="col-sm-4"><?= esc(lang('UI.t1af851907331')) ?></dt>
       <dd class="col-sm-8" id="details-size"></dd>
-      <dt class="col-sm-4">Updated</dt>
+      <dt class="col-sm-4"><?= esc(lang('UI.t3a5ecca188c0')) ?></dt>
       <dd class="col-sm-8" id="details-updated"></dd>
-      <dt class="col-sm-4">Owner</dt>
+      <dt class="col-sm-4"><?= esc(lang('UI.t4b1b8aa3608a')) ?></dt>
       <dd class="col-sm-8" id="details-owner"></dd>
       <dt class="col-sm-4">MIME</dt>
       <dd class="col-sm-8" id="details-mime"></dd>
-      <dt class="col-sm-4">Extension</dt>
+      <dt class="col-sm-4"><?= esc(lang('UI.t395aeb955e2e')) ?></dt>
       <dd class="col-sm-8" id="details-extension"></dd>
     </dl>
     <hr>
     <div class="d-flex flex-wrap gap-2">
-      <a class="btn btn-sm btn-primary d-none" id="details-download" href="#"><i class="ti ti-download me-1"></i>Download</a>
-      <a class="btn btn-sm btn-light-primary d-none" id="details-preview" href="#" data-drive-preview><i class="ti ti-eye me-1"></i>Preview</a>
+      <a class="btn btn-sm btn-primary d-none" id="details-download" href="#"><i class="ti ti-download me-1"></i><?= esc(lang('UI.td6eafe823591')) ?></a>
+      <a class="btn btn-sm btn-light-primary d-none" id="details-preview" href="#" data-drive-preview><i class="ti ti-eye me-1"></i><?= esc(lang('UI.t324b134f57c7')) ?></a>
     </div>
   </div>
 </div>
@@ -586,7 +586,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <div class="modal-body p-3 text-center">
-        <p class="mb-0 small text-muted">Loading details…</p>
+        <p class="mb-0 small text-muted"><?= esc(lang('UI.tb1905aae7f24')) ?></p>
       </div>
     </div>
   </div>

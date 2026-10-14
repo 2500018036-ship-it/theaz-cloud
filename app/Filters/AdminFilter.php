@@ -13,6 +13,10 @@ class AdminFilter implements FilterInterface
 {
     public function before(RequestInterface $request, $arguments = null)
     {
+        $authResult = (new AuthFilter())->before($request, $arguments);
+        if ($authResult !== null) {
+            return $authResult;
+        }
         if (! session()->get('is_logged_in')) {
             return redirect()->to('/login')->with('error', 'Please sign in to continue.');
         }

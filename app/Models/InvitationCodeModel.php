@@ -12,6 +12,10 @@ class InvitationCodeModel extends Model
 
     protected $returnType = 'array';
 
+    protected $useSoftDeletes = true;
+
+    protected $deletedField = 'deleted_at';
+
     protected $allowedFields = [
         'label',
         'code_hash',
