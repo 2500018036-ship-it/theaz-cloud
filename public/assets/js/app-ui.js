@@ -24,7 +24,7 @@
     setTimeout(function () { box.remove(); }, 6000);
   }
   function url(value) { try { return new URL(value, location.href); } catch (_) { return null; } }
-  function eligible(target) { return target && target.origin === location.origin && !direct.test(target.pathname); }
+  function eligible(target) { return target && target.origin === location.origin && !direct.test(target.pathname) && !/\/s\/[^/]+$/.test(target.pathname); }
   function loading(value) {
     document.body.classList.toggle('cloud-loading', value);
     document.getElementById('cloud-shell')?.setAttribute('aria-busy', String(value));
@@ -154,7 +154,8 @@
   document.addEventListener('submit', function (event) {
     if (event.defaultPrevented) return;
     var form = event.target, target = url(form.action || location.href);
-    if (!eligible(target) || form.dataset.noAjax !== undefined || form.id === 'upload-form') return;
+    var avatarMutation = target?.origin === location.origin && (form.method || 'get').toLowerCase() === 'post' && /\/settings\/avatar(?:\/delete)?\/?$/.test(target.pathname);
+    if ((!eligible(target) && !avatarMutation) || form.dataset.noAjax !== undefined || form.id === 'upload-form') return;
     event.preventDefault();
     if ((form.method || 'get').toLowerCase() === 'get') { target.search = new URLSearchParams(new FormData(form)).toString(); navigate(target.toString(), true); return; }
     var confirmText = form.dataset.adminConfirm || form.dataset.confirm;
