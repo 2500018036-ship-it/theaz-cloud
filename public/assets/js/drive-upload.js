@@ -112,7 +112,9 @@
       toggleBtn(el, '.upload-cancel', false);
       var resultDocument = new DOMParser().parseFromString(xhr.responseText, 'text/html');
       window.CloudApp?.token(xhr.getResponseHeader('X-CSRF-TOKEN'));
-      var failed = resultDocument.querySelector('.alert-danger') || /\/login\/?$/.test(new URL(xhr.responseURL || window.location.href).pathname);
+      var failed = Array.from(resultDocument.querySelectorAll('.alert-danger:not(.d-none):not([hidden])'))
+        .find(function (alert) { return alert.textContent.trim() !== ''; })
+        || /\/login\/?$/.test(new URL(xhr.responseURL || window.location.href).pathname);
       if (xhr.status >= 200 && xhr.status < 400 && !failed) {
         setStatus(el, 'completed');
         setProgress(el, 100);
@@ -306,6 +308,8 @@
     var fileList = document.getElementById('upload-file-list');
     var form = document.getElementById('upload-form');
     if (!fileInput || !form) return;
+    if (form.dataset.uploadBound === 'true') return;
+    form.dataset.uploadBound = 'true';
 
     // Mark form as managed so drive-ui.js skips it
     form.dataset.managed = 'true';

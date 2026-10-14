@@ -147,6 +147,9 @@
     document.querySelectorAll('img').forEach(function (img) { img.decoding = 'async'; if (!img.closest('.pc-header')) img.loading = 'lazy'; });
     document.querySelectorAll('.loader-bg').forEach(function (el) { el.style.display = 'none'; });
     window.feather?.replace();
+    document.querySelectorAll('[data-bs-toggle="dropdown"][data-bs-boundary="viewport"]').forEach(function (el) {
+      window.bootstrap?.Dropdown.getOrCreateInstance(el, {popperConfig:{strategy:'fixed'}});
+    });
     translate(document.getElementById('cloud-shell'));
   }
   function translate(root) {

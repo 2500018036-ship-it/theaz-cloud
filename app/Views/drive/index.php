@@ -265,6 +265,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
     <?php else: ?>
       <?= view('components/app/bulk_toolbar', ['id' => 'drive-bulk', 'action' => site_url('drive/bulk'), 'hidden' => ['parent_id' => $folderId, 'context' => $section],
           'options' => $section === 'trash' ? ['restore' => lang('UI.ta76e13b98392'), 'destroy' => lang('UI.t280b10c89cc4')] : ['delete' => lang('UI.tb250a454877d'), 'star' => lang('App.actions.star'), 'unstar' => lang('App.actions.unstar')]]) ?>
+      <div class="table-responsive">
       <table class="table align-middle mb-0">
           <thead>
             <tr>
@@ -321,6 +322,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
             <?php endforeach; ?>
           </tbody>
       </table>
+      </div>
     <?php endif; ?>
   </div>
   <?php if (($pager['totalPages'] ?? 1) > 1): ?>
