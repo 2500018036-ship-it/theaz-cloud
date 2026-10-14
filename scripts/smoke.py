@@ -39,7 +39,8 @@ class Browser:
             return error.code, error.read(), error.headers, error.geturl()
         except TimeoutError:
             method = 'POST' if data is not None else 'GET'
-            raise RuntimeError('%s %s timed out after %s seconds.' % (method, path.split('?')[0], self.timeout)) from None
+            safe_path = re.sub(r'/(?:email/verify|s)/[^/]+', '/[private link]', path.split('?')[0])
+            raise RuntimeError('%s %s timed out after %s seconds.' % (method, safe_path, self.timeout)) from None
         except urllib.error.URLError as error:
             safe_path = re.sub(r'/verify/[^/]+', '/verify/[redacted]', path.split('?')[0])
             raise RuntimeError('HTTP connection failed at %s (%s).' % (safe_path, type(error.reason).__name__)) from None
