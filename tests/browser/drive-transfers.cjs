@@ -127,6 +127,32 @@ async function status(page, index, expected) {
     console.log('PASS: chunk cancellation waits for server cleanup before starting the next upload');
 
     page = await setup(browser);
+    await upload(page, Array.from({ length: 11 }, (_, i) => ['file-' + i + '.txt', 'hello']));
+    await requestAt(page, 0, '/batch/init');
+    assert.equal(await page.locator('.upload-file-item').count(), 1);
+    assert.equal(await page.evaluate(() => JSON.parse(window.requests[0].data.get('files')).length), 11);
+    await respond(page, 0, { success: true, batch_id: 'batch', archive_name: 'Upload.zip',
+      sessions: Array.from({ length: 11 }, (_, i) => ({ upload_id: 'file-' + i, chunk_size: 16, total_chunks: 1 })) });
+    let zipRequest = 1;
+    for (let i = 0; i < 11; i++) {
+      await requestAt(page, zipRequest, '/chunk');
+      if (i === 1) {
+        await respond(page, zipRequest++, { success: false, error: 'Connection lost' }, 422);
+        await status(page, 0, 'Failed'); await page.locator('.upload-retry').click();
+        await requestAt(page, zipRequest, '/chunk');
+        assert.equal(await page.evaluate(index => window.requests[index].data.get('upload_id'), zipRequest), 'file-1');
+      }
+      await respond(page, zipRequest++, { success: true });
+      await requestAt(page, zipRequest, '/batch/stage'); await respond(page, zipRequest++, { success: true });
+    }
+    await requestAt(page, zipRequest, '/batch/complete'); await status(page, 0, 'Creating ZIP…');
+    assert.equal(await page.locator('.upload-percent').textContent(), '99%');
+    await respond(page, zipRequest, { success: true }); await status(page, 0, 'Completed');
+    assert.equal(await page.locator('.upload-percent').textContent(), '100%');
+    await page.close();
+    console.log('PASS: eleven-file ZIP upload, interrupted file retry and final archive completion');
+
+    page = await setup(browser);
     await page.locator('[data-drive-extract]').click();
     await page.evaluate(() => document.querySelector('#extract-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
     await requestAt(page, 0, '/23/extract'); await status(page, 0, 'Extracting…');

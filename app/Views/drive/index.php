@@ -270,7 +270,8 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
       </div>
     <?php else: ?>
       <?= view('components/app/bulk_toolbar', ['id' => 'drive-bulk', 'action' => site_url('drive/bulk'), 'hidden' => ['parent_id' => $folderId, 'context' => $section],
-          'options' => $section === 'trash' ? ['restore' => lang('UI.ta76e13b98392'), 'destroy' => lang('UI.t280b10c89cc4')] : ['delete' => lang('UI.tb250a454877d'), 'star' => lang('App.actions.star'), 'unstar' => lang('App.actions.unstar')]]) ?>
+          'downloadAction' => $section !== 'trash' ? site_url('drive/bulk-download') : null,
+          'options' => $section === 'trash' ? ['restore' => lang('UI.ta76e13b98392'), 'destroy' => lang('UI.t280b10c89cc4')] : ['download' => lang('App.transfers.downloadZip'), 'delete' => lang('UI.tb250a454877d'), 'star' => lang('App.actions.star'), 'unstar' => lang('App.actions.unstar')]]) ?>
       <div class="table-responsive">
       <table class="table align-middle mb-0">
           <thead>
@@ -287,7 +288,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
           <tbody>
             <?php foreach ($items as $item): ?>
               <tr>
-                <td><input class="form-check-input" type="checkbox" id="drive-select-<?= (int) $item['id'] ?>" data-select-item data-select-actions="<?= ($item['access_role'] ?? 'owner') === 'owner' ? 'delete star unstar restore destroy' : '' ?>" form="drive-bulk" name="selected[]" value="<?= (int) $item['id'] ?>" aria-label="<?= esc(lang('App.actions.select'), 'attr') ?>"></td>
+                <td><input class="form-check-input" type="checkbox" id="drive-select-<?= (int) $item['id'] ?>" data-select-item data-select-actions="<?= ($item['access_role'] ?? 'owner') === 'owner' ? 'download delete star unstar restore destroy' : 'download' ?>" form="drive-bulk" name="selected[]" value="<?= (int) $item['id'] ?>" aria-label="<?= esc(lang('App.actions.select'), 'attr') ?>"></td>
                 <td>
                   <div class="d-flex align-items-center gap-2">
                     <a class="avtar avtar-xs bg-light-primary text-primary text-decoration-none" href="<?= esc($itemHref($item)) ?>"<?= $item['type'] === 'file' && $isPreviewable($item) ? ' data-drive-preview' : '' ?>>

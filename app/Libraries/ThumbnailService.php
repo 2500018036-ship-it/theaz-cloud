@@ -78,6 +78,8 @@ class ThumbnailService
         if (filesize($sourcePath) > 20_971_520) {
             return false;
         }
+        $dimensions = @getimagesize($sourcePath);
+        if ($dimensions === false || $dimensions[0] * $dimensions[1] > 32_000_000) return false;
 
         $source = match ($mimeType) {
             'image/jpeg' => @imagecreatefromjpeg($sourcePath),

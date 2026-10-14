@@ -1516,12 +1516,15 @@ class DriveService
         $sort = (string) ($filters['sort'] ?? 'name');
         $dir = strtolower((string) ($filters['dir'] ?? 'asc')) === 'desc' ? 'DESC' : 'ASC';
 
-        $builderFactory = function () use ($userId, $mode, $search) {
+        $imageOnly = ($filters['type'] ?? '') === 'image';
+        $builderFactory = function () use ($userId, $mode, $search, $imageOnly) {
             $builder = $this->db->table('drive_items item')
                 ->select('item.*, fav.id AS favorite_id, owner.username AS owner_username, owner.email AS owner_email')
                 ->join('drive_favorites fav', 'fav.item_id = item.id AND fav.user_id = ' . $this->db->escape($userId), 'left')
                 ->join('users owner', 'owner.id = item.user_id')
                 ->where('item.status', 'active');
+
+            if ($imageOnly) $builder->where('item.type', 'file')->like('item.mime_type', 'image/', 'after');
 
             if ($mode === 'with-me') {
                 $builder->select('share.permission AS direct_permission, 1 AS share_count', false)

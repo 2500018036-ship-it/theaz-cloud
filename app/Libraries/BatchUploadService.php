@@ -75,6 +75,47 @@ class BatchUploadService
         return $result;
     }
 
+    public function storeMultipart(int $userId, ?int $parentId, array $files): array
+    {
+        if (count($files) <= $this->config->autoZipThreshold || count($files) > $this->config->maxZipUploadFiles) {
+            throw new \DomainException(lang('App.transfers.batchFileLimit', [$this->config->maxZipUploadFiles]));
+        }
+        $destination = $this->drive->uploadDestination($userId, $parentId);
+        $size = 0;
+        foreach ($files as $file) {
+            if (! $file->isValid()) throw new \DomainException($file->getErrorString());
+            $this->drive->validateUploadMetadata($file->getClientName(), (int) $file->getSize());
+            $this->drive->validateUploadSource($file->getClientName(), $file->getTempName());
+            $size += (int) $file->getSize() + 512 + strlen($file->getClientName()) * 2;
+        }
+        if ($size > $destination['available']) throw new \DomainException('Not enough storage quota.');
+        if ($size > $this->drive->uploadSizeLimit()) throw new \DomainException('File exceeds the maximum upload size.');
+        $directory = $this->drive->storageRoot() . DIRECTORY_SEPARATOR . 'tmp';
+        if (! is_dir($directory) && ! mkdir($directory, 0775, true) && ! is_dir($directory)) throw new \RuntimeException('Temp directory could not be created.');
+        $path = $directory . DIRECTORY_SEPARATOR . 'multipart-' . bin2hex(random_bytes(16)) . '.zip';
+        $zip = new \ZipArchive();
+        $opened = false;
+        try {
+            if ($zip->open($path, \ZipArchive::CREATE) !== true) throw new \RuntimeException('Could not create ZIP archive.');
+            $opened = true; $names = [];
+            foreach ($files as $file) {
+                $name = $original = $file->getClientName();
+                for ($suffix = 2; isset($names[mb_strtolower($name)]); $suffix++) {
+                    $name = mb_substr(pathinfo($original, PATHINFO_FILENAME), 0, 165) . ' (' . $suffix . ').' . pathinfo($original, PATHINFO_EXTENSION);
+                }
+                $names[mb_strtolower($name)] = true;
+                if (! $zip->addFile($file->getTempName(), $name) || ! $zip->setCompressionName($name, \ZipArchive::CM_STORE)) throw new \RuntimeException('Could not create ZIP archive.');
+            }
+            $closed = $zip->close(); $opened = false;
+            if (! $closed) throw new \RuntimeException('Could not create ZIP archive.');
+
+            return $this->drive->importLocalFile($userId, $parentId, $path, 'Upload-' . date('Ymd-His') . '.zip', null, true);
+        } finally {
+            if ($opened) $zip->close();
+            @unlink($path);
+        }
+    }
+
     public function complete(int $userId, string $batchId): array
     {
         $batch = $this->find($userId, $batchId);

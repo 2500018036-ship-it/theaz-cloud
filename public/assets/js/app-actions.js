@@ -14,7 +14,13 @@
     all.disabled = !eligible.length; all.checked = eligible.length > 0 && count === eligible.length;
     all.indeterminate = count > 0 && count < eligible.length;
     form.querySelector('[data-selected-count]').textContent = CloudApp.t('{0} selected').replace('{0}', count);
-    form.querySelector('[data-selection-submit]').disabled = count === 0 || form.getAttribute('aria-busy') === 'true';
+    var submit = form.querySelector('[data-selection-submit]');
+    submit.disabled = count === 0 || form.getAttribute('aria-busy') === 'true';
+    if (form.dataset.downloadAction) {
+      submit.textContent = CloudApp.t(action === 'download' ? 'Download ZIP' : 'Apply');
+      submit.classList.toggle('btn-outline-primary', action === 'download');
+      submit.classList.toggle('btn-outline-danger', action !== 'download');
+    }
   }
   document.addEventListener('change', function (event) {
     var el = event.target;

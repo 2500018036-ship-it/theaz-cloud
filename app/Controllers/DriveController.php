@@ -148,6 +148,21 @@ class DriveController extends BaseController
         $created = 0;
         $errors = [];
 
+        if (count($files) > config(\Config\CloudDrive::class)->autoZipThreshold) {
+            try {
+                $item = (new \App\Libraries\BatchUploadService())->storeMultipart($this->currentUserId(), $folderId, $files);
+                if (str_contains($this->request->getHeaderLine('Accept'), 'application/json')) {
+                    return $this->jsonResponse(['success' => true, 'created' => 1, 'item' => $item]);
+                }
+
+                return $this->redirectToFolder($folderId, $context)->with('message', '1 file(s) uploaded.');
+            } catch (\Throwable $exception) {
+                if (str_contains($this->request->getHeaderLine('Accept'), 'application/json')) return $this->jsonError($exception->getMessage());
+
+                return $this->redirectToFolder($folderId, $context)->with('error', $exception->getMessage());
+            }
+        }
+
         foreach ($files as $file) {
             if ($file->getError() === UPLOAD_ERR_NO_FILE) {
                 continue;
@@ -455,7 +470,12 @@ class DriveController extends BaseController
             $thumb = $thumbService->getThumbnail($this->currentUserId(), $id);
 
             if ($thumb === null) {
-                return redirect()->to('/drive')->with('error', 'Thumbnail not available.');
+                $file = $this->drive->readableFile($this->currentUserId(), $id);
+                if (! str_starts_with((string) $file['item']['mime_type'], 'image/')) {
+                    throw new \DomainException('Thumbnail not available.');
+                }
+
+                return $this->response->download($file['path'], null, true)->setFileName($file['item']['name'])->inline();
             }
 
             $this->response->setHeader('Cache-Control', 'public, max-age=86400');
@@ -640,17 +660,20 @@ class DriveController extends BaseController
                 // Avoid duplicate names inside ZIP
                 $suffix = 2;
                 $original = $name;
-                while (in_array($name, $names, true)) {
+                while (in_array(mb_strtolower($name), $names, true)) {
                     $ext = pathinfo($original, PATHINFO_EXTENSION);
                     $base = $ext !== '' ? substr($original, 0, -(strlen($ext) + 1)) : $original;
                     $name = $base . ' (' . $suffix . ')' . ($ext !== '' ? '.' . $ext : '');
                     $suffix++;
                 }
-                $names[] = $name;
-                $zip->addFile($entry['path'], $name);
+                $names[] = mb_strtolower($name);
+                if (! $zip->addFile($entry['path'], $name) || ! $zip->setCompressionName($name, \ZipArchive::CM_STORE)) {
+                    $zip->close();
+                    throw new \RuntimeException('Could not create ZIP archive.');
+                }
             }
 
-            $zip->close();
+            if (! $zip->close()) throw new \RuntimeException('Could not create ZIP archive.');
 
             (new ActivityLogger())->record($userId, 'drive.bulk_download', 'success', [
                 'type' => 'drive_item',
@@ -679,6 +702,7 @@ class DriveController extends BaseController
                 'selected' => $ids,
                 'error'    => $exception->getMessage(),
             ]);
+            if (isset($tmpPath) && is_file($tmpPath)) @unlink($tmpPath);
 
             return $this->redirectToFolder($folderId)->with('error', $exception->getMessage());
         }
