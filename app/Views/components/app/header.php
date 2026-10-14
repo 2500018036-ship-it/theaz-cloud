@@ -90,15 +90,16 @@ if (session('is_logged_in') && session('user_id')) {
             <?php else: ?>
               <div class="list-group list-group-flush">
                 <?php foreach ($notificationSummary['items'] as $notice): ?>
-                  <a class="list-group-item list-group-item-action" href="<?= esc((string) ($notice['action_url'] ?: site_url('notifications'))) ?>">
+                  <form action="<?= site_url('notifications/' . $notice['id'] . '/open') ?>" method="post">
+                  <?= csrf_field() ?><button type="submit" class="list-group-item list-group-item-action w-100 text-start">
                     <div class="d-flex justify-content-between gap-2">
-                      <span class="fw-semibold text-truncate"><?= esc($notice['title']) ?></span>
+                      <span data-user-content class="fw-semibold text-truncate"><?= esc($notice['title']) ?></span>
                       <?php if (empty($notice['read_at'])): ?>
                         <span class="badge bg-light-primary text-primary"><?= esc(lang('App.header.new')) ?></span>
                       <?php endif; ?>
                     </div>
-                    <div class="text-muted small text-truncate"><?= esc((string) ($notice['body'] ?? '')) ?></div>
-                  </a>
+                    <div data-user-content class="text-muted small text-truncate"><?= esc((string) ($notice['body'] ?? '')) ?></div>
+                  </button></form>
                 <?php endforeach; ?>
               </div>
             <?php endif; ?>

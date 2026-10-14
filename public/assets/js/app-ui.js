@@ -1,8 +1,9 @@
 (function () {
   'use strict';
   var parser = new DOMParser(), pendingNavigation, mutation = Promise.resolve(), busyForms = new WeakSet();
-  var direct = /\/(?:download|preview|thumbnail|thumb|avatar|info|text)(?:\/|$)|\/upload\/(?:init|chunk|complete|cancel)$/;
+  var direct = /\/(?:download|bulk-download|preview|thumbnail|thumb|avatar|info|text)(?:\/|$)|\/upload\/(?:init|chunk|complete|cancel)$/;
   var reverseTranslations;
+  var renderedUrl = location.href, savedScroll = new Map(), savedQueries = new Map();
   function t(text) {
     var catalogs = window.CloudTranslations || {}, locale = document.documentElement.lang || 'en';
     if (catalogs[locale]?.[text]) return catalogs[locale][text];
@@ -24,6 +25,7 @@
     setTimeout(function () { box.remove(); }, 6000);
   }
   function url(value) { try { return new URL(value, location.href); } catch (_) { return null; } }
+  function pagePath(path) { return path.replace(/^\/index\.php(?:\/|$)/, '/'); }
   function eligible(target) { return target && target.origin === location.origin && !direct.test(target.pathname) && !/\/s\/[^/]+$/.test(target.pathname); }
   function loading(value) {
     document.body.classList.toggle('cloud-loading', value);
@@ -35,14 +37,14 @@
     var timeout = setTimeout(function () { controller.abort('timeout'); }, options.timeout || 30000);
     try {
       var response = await fetch(target, Object.assign({}, options, {signal: controller.signal, credentials: 'same-origin',
-        headers: Object.assign({'X-Requested-With': 'XMLHttpRequest', 'X-Cloud-Frame': '1'}, options.headers || {})}));
+        headers: Object.assign({'X-Requested-With': 'XMLHttpRequest', 'X-Cloud-Frame': '1', 'X-Cloud-Context': location.pathname + location.search}, options.headers || {})}));
       token(response.headers.get('X-CSRF-TOKEN'));
       if (!response.headers.get('content-type')?.includes('text/html')) {
         throw new Error(response.status === 403 ? 'Your session or security token expired. Please try again.' : 'The request could not be completed.');
       }
       var html = await response.text();
       if (response.status >= 400) throw new Error(response.status === 403 ? 'You do not have permission to perform this action.' : 'The server could not complete the request.');
-      return {document: parser.parseFromString(html, 'text/html'), url: response.url || target};
+      return {document: parser.parseFromString(html, 'text/html'), url: response.url || target, mutation: options.method === 'POST'};
     } finally { clearTimeout(timeout); }
   }
   async function install(result, push, languageChange, shouldInstall) {
@@ -60,6 +62,14 @@
     }));
     if (shouldInstall && !shouldInstall()) return;
     if (!current.isConnected) return;
+    var position = {x: window.scrollX, y: window.scrollY};
+    savedScroll.set(renderedUrl, position);
+    var previousUrl = url(renderedUrl), nextUrl = url(result.url || location.href);
+    if (previousUrl) savedQueries.set(pagePath(previousUrl.pathname), previousUrl.search);
+    if (!result.mutation && !languageChange && nextUrl && nextUrl.href !== renderedUrl && savedScroll.has(nextUrl.href)) position = savedScroll.get(nextUrl.href);
+    var innerScroll = Array.from(current.querySelectorAll('.table-responsive, .pc-sidebar, .dropdown-notification')).map(function (el) { return {x: el.scrollLeft, y: el.scrollTop}; });
+    var selected = Array.from(current.querySelectorAll('[data-select-item]:checked')).map(function (el) { return el.id; });
+    var bulkActions = Array.from(current.querySelectorAll('[data-selection-form]')).map(function (form) { return {id:form.id, value:form.elements.bulk_action.value}; });
     var values = [], open = [], preservedModals = [];
     if (languageChange) {
       document.querySelectorAll('.modal.show').forEach(function (m) { open.push(m.id); preservedModals.push(m); });
@@ -84,15 +94,25 @@
     document.title = result.document.title || document.title;
     if (push && result.url !== location.href) history.pushState({cloud: true}, '', result.url);
     else if (!push && !languageChange && result.url !== location.href) history.replaceState({cloud: true}, '', result.url);
+    renderedUrl = location.href;
+    if (/\/(?:login|register)\/?$/.test(nextUrl?.pathname || '')) { savedScroll.clear(); savedQueries.clear(); }
     localStorage.setItem('cloud-locale', document.documentElement.lang);
     init(); window.cloudDriveInit?.();
+    bulkActions.forEach(function (saved) { var form = document.getElementById(saved.id); if (form) form.elements.bulk_action.value = saved.value; });
+    selected.forEach(function (id) { var box = document.getElementById(id); if (box && !box.disabled) box.checked = true; });
+    window.cloudActionsInit?.();
     if (languageChange) {
       values.forEach(function (saved) {
         var el = saved.id ? document.getElementById(saved.id) : Array.from(next.querySelectorAll('[name]')).find(function (v) { return v.name === saved.name && v.form?.getAttribute('action') === saved.form; });
         if (el) { el.value = saved.value; el.checked = saved.checked; }
       });
       open.forEach(function (id) { var el = document.getElementById(id); if (el && window.bootstrap) bootstrap.Modal.getOrCreateInstance(el).show(); });
-    } else window.scrollTo(0, 0);
+    }
+    Array.from(next.querySelectorAll('.table-responsive, .pc-sidebar, .dropdown-notification')).forEach(function (el, i) { if (innerScroll[i]) { el.scrollLeft = innerScroll[i].x; el.scrollTop = innerScroll[i].y; } });
+    window.scrollTo({left:position.x, top:position.y, behavior:'instant'});
+    requestAnimationFrame(function () { if (next.isConnected) window.scrollTo({left:position.x, top:position.y, behavior:'instant'}); });
+    if (languageChange) window.cloudActionsInit?.();
+    next.querySelectorAll('.alert-success, .alert-danger').forEach(function (el) { if (!el.closest('.modal')) toast(el.textContent.trim(), el.classList.contains('alert-danger')); });
     document.dispatchEvent(new CustomEvent('cloud:updated'));
   }
   async function navigate(target, push) {
@@ -113,8 +133,8 @@
   function submit(form, target, submitter) {
     if (busyForms.has(form)) return;
     busyForms.add(form); formBusy(form, true);
+    var data = new FormData(form); if (submitter?.name) data.set(submitter.name, submitter.value);
     mutation = mutation.catch(function () {}).then(async function () {
-      var data = new FormData(form); if (submitter?.name) data.set(submitter.name, submitter.value);
       var csrf = document.querySelector('input[name="csrf_test_name"]'); if (csrf) data.set(csrf.name, csrf.value);
       if (/\/language\/?$/.test(target.pathname)) data.set('return_to', location.pathname + location.search);
       loading(true);
@@ -148,7 +168,13 @@
     var link = event.target.closest('a[href]');
     if (!link || link.closest('[data-drive-preview]') || link.hasAttribute('download') || link.dataset.noAjax !== undefined || link.classList.contains('disabled') || link.target && link.target !== '_self') return;
     var href = link.getAttribute('href'); if (!href || href[0] === '#' || link.hasAttribute('data-bs-toggle')) return;
+    if (link.hasAttribute('data-cloud-back') && history.state?.cloud && history.length > 1) { event.preventDefault(); history.back(); return; }
     var target = url(link.href); if (!eligible(target)) return;
+    if (link.closest('.pc-sidebar') && !target.search && savedQueries.has(pagePath(target.pathname))) target.search = savedQueries.get(pagePath(target.pathname));
+    if (pagePath(target.pathname) === pagePath(location.pathname) && target.search) {
+      var params = new URLSearchParams(location.search);
+      target.searchParams.forEach(function (value, key) { params.set(key, value); }); target.search = params.toString();
+    }
     event.preventDefault(); navigate(target.toString(), true);
   });
   document.addEventListener('submit', function (event) {
@@ -157,7 +183,16 @@
     var avatarMutation = target?.origin === location.origin && (form.method || 'get').toLowerCase() === 'post' && /\/settings\/avatar(?:\/delete)?\/?$/.test(target.pathname);
     if ((!eligible(target) && !avatarMutation) || form.dataset.noAjax !== undefined || form.id === 'upload-form') return;
     event.preventDefault();
-    if ((form.method || 'get').toLowerCase() === 'get') { target.search = new URLSearchParams(new FormData(form)).toString(); navigate(target.toString(), true); return; }
+    if ((form.method || 'get').toLowerCase() === 'get') {
+      var params = new URLSearchParams(pagePath(target.pathname) === pagePath(location.pathname) ? location.search : target.search);
+      var changed = false;
+      new FormData(form).forEach(function (value, key) {
+        if ((params.get(key) || '') !== String(value) && form.elements.namedItem(key)?.type !== 'hidden') changed = true;
+        params.set(key, value);
+      });
+      if (changed) params.delete('page');
+      target.search = params.toString(); navigate(target.toString(), true); return;
+    }
     var confirmText = form.dataset.adminConfirm || form.dataset.confirm;
     if (confirmText && !window.confirm(t(confirmText))) return;
     submit(form, target, event.submitter);
@@ -178,6 +213,7 @@
   }, true);
   window.addEventListener('popstate', function () { navigate(location.href, false); });
   window.CloudApp = {navigate: navigate, request: request, toast: toast, t: t, token: token, translate: translate};
+  history.scrollRestoration = 'manual';
   new MutationObserver(function (entries) {
     entries.forEach(function (entry) { entry.addedNodes.forEach(function (node) { if (node.nodeType === 1) translate(node); }); });
   }).observe(document.documentElement, {childList: true, subtree: true});

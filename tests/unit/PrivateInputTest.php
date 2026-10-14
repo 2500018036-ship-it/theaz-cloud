@@ -5,6 +5,23 @@ use CodeIgniter\Test\CIUnitTestCase;
 
 final class PrivateInputTest extends CIUnitTestCase
 {
+    public function testAsyncMutationsPreserveSafeListQueryAndRejectExternalContext(): void
+    {
+        $request = new \CodeIgniter\HTTP\Request(config(\Config\App::class));
+        $request->setMethod('POST'); $request->getUri()->setPath('/admin/users/2/status');
+        $request->setHeader('X-Cloud-Frame', '1');
+        $request->setHeader('X-Cloud-Context', '/admin/users?q=alice&status=active&page=3&perPage=20&secret=ignored');
+        $response = new \CodeIgniter\HTTP\Response(config(\Config\App::class));
+        $response->setHeader('Location', 'http://example.com/admin/users');
+        (new PrivateInputFilter())->after($request, $response);
+        parse_str(parse_url($response->getHeaderLine('Location'), PHP_URL_QUERY), $query);
+        $this->assertSame(['q' => 'alice', 'status' => 'active', 'page' => '3', 'perPage' => '20'], $query);
+        $request->setHeader('X-Cloud-Context', '//external.example/admin/users');
+        $response->setHeader('Location', 'http://example.com/admin/users');
+        (new PrivateInputFilter())->after($request, $response);
+        $this->assertSame('http://example.com/admin/users', $response->getHeaderLine('Location'));
+    }
+
     public function testLocalHealthChecksDoNotGenerateSecureCsrfCookies(): void
     {
         $cookie = config(\Config\Cookie::class);

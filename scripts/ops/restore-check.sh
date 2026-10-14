@@ -20,6 +20,13 @@ done
 [[ "$ready" == 1 ]] || { echo 'Isolated restore database did not become ready within ten minutes.' >&2; exit 1; }
 docker exec -i "$container" sh -c 'MYSQL_PWD="$MARIADB_ROOT_PASSWORD" exec mariadb -u root restore_check' < "$backup/database.sql"
 docker exec "$container" sh -c 'MYSQL_PWD="$MARIADB_ROOT_PASSWORD" exec mariadb -u root --batch --skip-column-names restore_check -e "SELECT COUNT(*) AS users FROM users; SELECT COUNT(*) AS items FROM drive_items;"'
+if grep -q users_protect_owner_update "$backup/database.sql"; then
+    if docker exec "$container" sh -c 'MYSQL_PWD="$MARIADB_ROOT_PASSWORD" exec mariadb -u root restore_check -e "START TRANSACTION; UPDATE users SET status = '\''inactive'\'' WHERE role = '\''super_admin'\''; ROLLBACK;"' > "$scratch/owner-protection.log" 2>&1; then
+        echo 'Restored primary-owner protection failed.' >&2; exit 1
+    fi
+    grep -q 'Primary administrator' "$scratch/owner-protection.log"
+    echo 'PASS: restored database rejects deactivation of the permanent owner.'
+fi
 mkdir "$scratch/files" "$scratch/writable"
 python3 - "$backup" "$scratch" <<'PY'
 import hashlib,json,pathlib,sys,tarfile

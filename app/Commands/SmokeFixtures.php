@@ -25,6 +25,7 @@ class SmokeFixtures extends BaseCommand
                     if ($user !== null) $users->update((int) $user['id'], ['status' => 'inactive']);
                     $db->table('invitation_codes')->where('code_hash', (new InvitationService())->hashCode($fixture['invite']))->update(['status' => 'revoked']);
                 } elseif ($user !== null) {
+                    $fixture['id'] = (int) $user['id'];
                     $mail = $db->table('email_queue')->select('body_text')->where('user_id', $user['id'])->where('event_type', 'email_verification')->orderBy('id', 'DESC')->get()->getRowArray();
                     if ($mail && preg_match('~email/verify/([a-f0-9]{64})~', $mail['body_text'], $match)) $fixture['verification_token'] = $match[1];
                 }
@@ -53,7 +54,7 @@ class SmokeFixtures extends BaseCommand
         $sessionFile = WRITEPATH . 'session/ci_session' . $session;
         file_put_contents($sessionFile, $serialized); chmod($sessionFile, 0600);
         if (function_exists('posix_geteuid') && posix_geteuid() === 0) { chown($sessionFile, 'www-data'); chgrp($sessionFile, 'www-data'); }
-        $data = ['admin' => ['username' => $owner['username'], 'email' => $owner['email'], 'password' => $password ?? '', 'session' => $session], 'users' => []];
+        $data = ['admin' => ['id' => (int) $owner['id'], 'username' => $owner['username'], 'email' => $owner['email'], 'password' => $password ?? '', 'session' => $session], 'users' => []];
         $from = (string) config(\Config\Email::class)->fromEmail;
         foreach (['one', 'two'] as $name) {
             $invite = (new InvitationService())->generatePlainCode();

@@ -188,6 +188,16 @@ class InvitationsController extends BaseController
             ->with('message', 'Invitation revoked.');
     }
 
+    public function bulk(): RedirectResponse
+    {
+        try {
+            (new InvitationService())->bulk($this->currentUserId() ?? 0, $this->request->getPost('selected'), (string) $this->request->getPost('bulk_action'));
+            return redirect()->to('/admin/invitations')->with('message', 'Bulk action completed.');
+        } catch (\Throwable $exception) {
+            return redirect()->to('/admin/invitations')->with('error', $exception->getMessage());
+        }
+    }
+
     public function delete(int $id): RedirectResponse
     {
         try {

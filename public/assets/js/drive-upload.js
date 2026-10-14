@@ -100,6 +100,8 @@
     xhr.timeout = 600000;
     xhr.open('POST', window.driveBaseUrl + '/drive/upload');
     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    xhr.setRequestHeader('X-Cloud-Frame', '1');
+    xhr.setRequestHeader('X-Cloud-Context', window.location.pathname + window.location.search);
     xhr.withCredentials = true;
 
     xhr.upload.addEventListener('progress', function (e) {

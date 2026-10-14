@@ -94,6 +94,7 @@
   }
 
   function replaceFrame(html, targetUrl, pushState) {
+    if (window.CloudApp) return window.CloudApp.navigate(window.location.href, false);
     var nextDocument = parser.parseFromString(html, 'text/html');
     var nextContent = nextDocument.querySelector('.pc-content');
     var currentContent = document.querySelector('.pc-content');
@@ -125,7 +126,6 @@
       window.feather.replace();
     }
 
-    window.scrollTo(0, 0);
     initDrivePage();
   }
 

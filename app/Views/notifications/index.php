@@ -1,4 +1,4 @@
-<?= $this->extend('layouts/user') ?>
+<?= $this->extend(session('role') === 'super_admin' ? 'layouts/admin' : 'layouts/user') ?>
 
 <?php
 $notifications = $notifications ?? [];
@@ -65,7 +65,9 @@ $formatDate = static function ($value): string {
             <div class="d-flex flex-wrap gap-2 align-items-start justify-content-between">
               <div class="flex-grow-1">
                 <div class="d-flex flex-wrap gap-2 align-items-center">
-                  <h6 data-user-content class="mb-0"><?= esc($notice['title']) ?></h6>
+                  <form action="<?= site_url('notifications/' . $notice['id'] . '/open') ?>" method="post">
+                    <?= csrf_field() ?><button data-user-content type="submit" class="btn btn-link text-start p-0 fw-semibold"><?= esc($notice['title']) ?></button>
+                  </form>
                   <span class="badge bg-light-secondary text-secondary"><?= esc($notice['category']) ?></span>
                   <?php if (empty($notice['read_at'])): ?>
                     <span class="badge bg-light-primary text-primary"><?= esc(lang('UI.t1b9f384c1436')) ?></span>
@@ -76,7 +78,9 @@ $formatDate = static function ($value): string {
               </div>
               <div class="d-flex gap-2">
                 <?php if (! empty($notice['action_url'])): ?>
-                  <a class="btn btn-sm btn-light-primary" href="<?= esc((string) $notice['action_url']) ?>"><i class="ti ti-external-link me-1"></i><?= esc(lang('UI.ted077f3d8125')) ?></a>
+                  <form action="<?= site_url('notifications/' . $notice['id'] . '/open') ?>" method="post">
+                    <?= csrf_field() ?><button type="submit" class="btn btn-sm btn-light-primary"><i class="ti ti-external-link me-1"></i><?= esc(lang('UI.ted077f3d8125')) ?></button>
+                  </form>
                 <?php endif; ?>
                 <?php if (empty($notice['read_at'])): ?>
                   <form action="<?= site_url('notifications/' . $notice['id'] . '/read') ?>" method="post">

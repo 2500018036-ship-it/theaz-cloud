@@ -81,6 +81,7 @@ class NotificationService
         };
 
         $total = (int) $builderFactory()->countAllResults();
+        $page = min($page, max(1, (int) ceil($total / $perPage)));
         $rows = $builderFactory()
             ->select('id, user_id, category, title, body, action_url, related_type, related_id, read_at, created_at')
             ->orderBy('created_at', 'DESC')
@@ -152,6 +153,13 @@ class NotificationService
 
     public function createAnnouncement(int $actorId, array $input): array
     {
+        (new AdminAuthorization($this->db))->requirePermission($actorId, 'notifications.manage');
+        $requestKey = trim((string) ($input['request_key'] ?? ''));
+        if ($requestKey !== '' && ! preg_match('/\A[a-f0-9]{64}\z/', $requestKey)) throw new \DomainException('Invalid announcement request.');
+        if ($requestKey !== '') {
+            $existing = $this->announcements->where('request_key', $requestKey)->where('created_by', $actorId)->first();
+            if ($existing !== null) return $existing;
+        }
         $title = mb_substr(trim((string) ($input['title'] ?? '')), 0, 190);
         $body = mb_substr(trim((string) ($input['body'] ?? '')), 0, 4000);
         $channels = $this->normalizeChannels((string) ($input['channels'] ?? 'notification'));
@@ -166,7 +174,7 @@ class NotificationService
             throw new \DomainException('Target user was not found.');
         }
 
-        $id = $this->announcements->insert([
+        $values = [
             'title'       => $title,
             'body'        => $body,
             'category'    => mb_substr(trim((string) ($input['category'] ?? 'announcement')) ?: 'announcement', 0, 40),
@@ -177,7 +185,17 @@ class NotificationService
             'notification_status' => str_contains($channels, 'notification') ? 'pending' : 'skipped',
             'email_status' => str_contains($channels, 'email') ? 'pending' : 'skipped',
             'created_by'  => $actorId,
-        ], true);
+            'request_key' => $requestKey ?: null,
+        ];
+        try {
+            $id = $this->announcements->insert($values, true);
+        } catch (\Throwable $exception) {
+            if ($requestKey !== '') {
+                $existing = $this->announcements->where('request_key', $requestKey)->where('created_by', $actorId)->first();
+                if ($existing !== null) return $existing;
+            }
+            throw $exception;
+        }
 
         if (! is_int($id)) {
             throw new \RuntimeException('Announcement could not be created.');
@@ -197,6 +215,7 @@ class NotificationService
 
     public function publishAnnouncement(int $actorId, int $announcementId): array
     {
+        (new AdminAuthorization($this->db))->requirePermission($actorId, 'notifications.manage');
         $announcement = $this->announcements->find($announcementId);
         if ($announcement === null) {
             throw new \DomainException('Announcement was not found.');
@@ -213,6 +232,15 @@ class NotificationService
         $this->db->transBegin();
 
         try {
+            // The conditional update locks this announcement; concurrent/repeated publication cannot fan out twice.
+            $this->announcements->builder()->where('id', $announcementId)->where('status', 'draft')->where('deleted_at', null)
+                ->update(['status' => 'published', 'published_at' => $now]);
+            if ($this->db->affectedRows() !== 1) {
+                $this->db->transCommit();
+                $current = $this->announcements->find($announcementId);
+                if ($current !== null && $current['status'] === 'published') return $current;
+                throw new \DomainException('Announcement is no longer available.');
+            }
             $notificationCount = 0;
             $emailCount = 0;
 
@@ -246,6 +274,7 @@ class NotificationService
                 'published_at'        => $now,
             ]);
 
+            if (! $this->db->transStatus()) throw new \RuntimeException('Announcement publication failed.');
             $this->db->transCommit();
         } catch (\Throwable $exception) {
             $this->db->transRollback();
@@ -268,6 +297,7 @@ class NotificationService
 
     public function archiveAnnouncement(int $actorId, int $announcementId): array
     {
+        (new AdminAuthorization($this->db))->requirePermission($actorId, 'notifications.manage');
         $announcement = $this->announcements->find($announcementId);
         if ($announcement === null) {
             throw new \DomainException('Announcement was not found.');
@@ -283,26 +313,74 @@ class NotificationService
         return $this->announcements->find($announcementId);
     }
 
+    public function deleteAnnouncement(int $actorId, int $id): void
+    {
+        (new AdminAuthorization($this->db))->requirePermission($actorId, 'notifications.manage');
+        if ($this->announcements->find($id) === null) throw new \DomainException('Announcement was not found.');
+        $this->announcements->delete($id);
+        $this->db->table('email_queue')->where('event_type', 'announcement')->where('event_id', $id)->where('status', 'queued')
+            ->update(['status' => 'cancelled', 'last_error' => 'Announcement deleted.']);
+        $this->activity->record($actorId, 'admin.announcement.delete', 'success', ['type' => 'announcement', 'id' => $id]);
+    }
+
+    public function bulkAnnouncements(int $actorId, mixed $selection, string $action): int
+    {
+        (new AdminAuthorization($this->db))->requirePermission($actorId, 'notifications.manage');
+        $ids = BulkSelection::ids($selection);
+        $this->db->transBegin();
+        try {
+            if (! in_array($action, ['delete', 'archive'], true)
+                || $this->announcements->whereIn('id', $ids)->countAllResults() !== count($ids)) throw new \DomainException('Invalid selection or action.');
+            foreach ($ids as $id) {
+                if ($action === 'delete') $this->deleteAnnouncement($actorId, $id);
+                else $this->archiveAnnouncement($actorId, $id);
+            }
+            if (! $this->db->transStatus()) throw new \RuntimeException('Bulk transaction failed.');
+            $this->db->transCommit();
+            return count($ids);
+        } catch (\Throwable $exception) {
+            $this->db->transRollback();
+            throw $exception;
+        }
+    }
+
+    public function notificationForUser(int $userId, int $id): array
+    {
+        $notice = $this->db->table('notifications')->select('id,user_id,category,title,body,action_url,related_type,related_id,read_at,created_at')
+            ->where('id', $id)->where('user_id', $userId)->get()->getRowArray();
+        if ($notice === null) throw new \DomainException('Notification was not found.');
+        if (in_array($notice['category'], ['announcement', 'announcements'], true)) {
+            $recipient = (string) ($this->db->table('users')->select('email')->where('id', $userId)->get()->getRowArray()['email'] ?? '');
+            $notice['title'] = $this->privateBroadcastText($notice['title'], $recipient);
+            $notice['body'] = $this->privateBroadcastText($notice['body'], $recipient);
+        }
+        return $notice;
+    }
+
     public function listAnnouncements(array $filters = []): array
     {
         $page = max(1, (int) ($filters['page'] ?? 1));
         $perPage = min(max(1, (int) ($filters['perPage'] ?? 15)), 100);
         $status = trim((string) ($filters['status'] ?? ''));
+        $search = trim((string) ($filters['q'] ?? ''));
 
-        $builderFactory = function () use ($status) {
+        $builderFactory = function () use ($status, $search) {
             $builder = $this->db->table('announcements ann')
                 ->select('ann.*, creator.username AS creator_username, target.username AS target_username, target.email AS target_email')
                 ->join('users creator', 'creator.id = ann.created_by', 'left')
-                ->join('users target', 'target.id = ann.target_user_id', 'left');
+                ->join('users target', 'target.id = ann.target_user_id', 'left')
+                ->where('ann.deleted_at', null);
 
             if (in_array($status, ['draft', 'published', 'archived'], true)) {
                 $builder->where('ann.status', $status);
             }
+            if ($search !== '') $builder->like('ann.title', mb_substr($search, 0, 190));
 
             return $builder;
         };
 
         $total = (int) $builderFactory()->countAllResults();
+        $page = min($page, max(1, (int) ceil($total / $perPage)));
         $rows = $builderFactory()
             ->orderBy('ann.created_at', 'DESC')
             ->orderBy('ann.id', 'DESC')
@@ -310,6 +388,9 @@ class NotificationService
             ->get()
             ->getResultArray();
 
+        $delivery = (new AnnouncementDeliveryService($this->db))->summary(array_column($rows, 'id'));
+        foreach ($rows as &$row) $row['delivery'] = $delivery[(int) $row['id']];
+        unset($row);
         return [
             'items' => $rows,
             'pager' => [
@@ -399,6 +480,7 @@ class NotificationService
 
     public function markRead(int $userId, int $notificationId): void
     {
+        $this->notificationForUser($userId, $notificationId);
         $this->db->table('notifications')
             ->where('id', $notificationId)
             ->where('user_id', $userId)
@@ -463,7 +545,7 @@ class NotificationService
     {
         $builder = $this->db->table('users')
             ->select('id, email')
-            ->where('status', 'active');
+            ->where('status', 'active')->where('deleted_at', null);
 
         if ((string) $announcement['target_type'] === 'user') {
             $builder->where('id', (int) $announcement['target_user_id']);

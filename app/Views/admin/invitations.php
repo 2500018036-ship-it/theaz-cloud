@@ -148,6 +148,8 @@ $urlWith = static function (array $overrides = []) use ($query): string {
         </div>
       </div>
       <div class="card-body table-border-style">
+        <?= view('components/app/bulk_toolbar', ['id' => 'invitation-bulk', 'action' => site_url('admin/invitations/bulk'),
+            'options' => ['delete' => lang('UI.te2d0a54968ea'), 'revoke' => lang('UI.t87e6d00bbf53')]]) ?>
         <?php if ($invitations === []): ?>
           <?= view('components/ui/empty_state', [
               'icon' => 'ti ti-ticket',
@@ -159,6 +161,7 @@ $urlWith = static function (array $overrides = []) use ($query): string {
             <table class="table align-middle">
               <thead>
                 <tr>
+                  <th><?= esc(lang('App.actions.select')) ?></th>
                   <th><?= esc(lang('UI.t0e66373f45dc')) ?></th>
                   <th><?= esc(lang('UI.t920e413c7d41')) ?></th>
                   <th><?= esc(lang('UI.t8d59829c1e15')) ?></th>
@@ -172,6 +175,7 @@ $urlWith = static function (array $overrides = []) use ($query): string {
                 <?php foreach ($invitations as $invitation): ?>
                   <?php $status = (string) ($invitation['status'] ?? 'active'); ?>
                   <tr>
+                    <td><input class="form-check-input" type="checkbox" id="invitation-select-<?= (int) $invitation['id'] ?>" data-select-item data-select-actions="<?= in_array($status, ['expired', 'revoked'], true) ? 'delete' : ($status === 'active' ? 'revoke' : '') ?>" form="invitation-bulk" name="selected[]" value="<?= (int) $invitation['id'] ?>" aria-label="<?= esc(lang('App.actions.select'), 'attr') ?>"></td>
                     <td>
                       <div class="fw-semibold"><?= esc($invitation['label'] ?: 'Unlabeled invitation') ?></div>
                       <div class="text-muted small"><?= esc($invitation['created_by_email'] ?: 'System') ?></div>
@@ -207,7 +211,7 @@ $urlWith = static function (array $overrides = []) use ($query): string {
                   </tr>
                   <?php if (in_array($status, ['active', 'expired'], true)): ?>
                     <tr class="collapse" id="invitation-edit-<?= esc((string) $invitation['id']) ?>">
-                      <td colspan="7">
+                      <td colspan="8">
                         <form action="<?= site_url('admin/invitations/' . $invitation['id'] . '/update') ?>" method="post" class="row g-2 align-items-end">
                           <?= csrf_field() ?>
                           <div class="col-md-4">

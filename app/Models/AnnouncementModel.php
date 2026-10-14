@@ -11,6 +11,7 @@ class AnnouncementModel extends Model
     protected $primaryKey = 'id';
 
     protected $returnType = 'array';
+    protected $useSoftDeletes = true;
 
     protected $allowedFields = [
         'title',
@@ -24,6 +25,7 @@ class AnnouncementModel extends Model
         'email_status',
         'created_by',
         'published_at',
+        'request_key',
     ];
 
     protected $useTimestamps = true;

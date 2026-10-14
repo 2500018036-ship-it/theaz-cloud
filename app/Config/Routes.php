@@ -37,6 +37,8 @@ $routes->group('settings', ['filter' => 'auth'], static function (RouteCollectio
 
 $routes->group('notifications', ['filter' => 'auth'], static function (RouteCollection $routes): void {
     $routes->get('summary', 'NotificationsController::summary');
+    $routes->get('(:num)', 'NotificationsController::show/$1');
+    $routes->post('(:num)/open', 'NotificationsController::open/$1');
     $routes->get('/', 'NotificationsController::index');
     $routes->post('read-all', 'NotificationsController::markAllRead');
     $routes->post('(:num)/read', 'NotificationsController::markRead/$1');
@@ -87,12 +89,16 @@ $routes->group('admin', ['filter' => 'admin'], static function (RouteCollection 
     $routes->get('users/(:num)', 'Admin\UsersController::show/$1');
     $routes->post('users/(:num)/status', 'Admin\UsersController::updateStatus/$1');
     $routes->post('users/(:num)/quota', 'Admin\UsersController::updateQuota/$1');
+    $routes->post('users/(:num)/delete', 'Admin\UsersController::delete/$1');
     $routes->get('storage', 'Admin\StorageController::index');
     $routes->get('settings', 'Admin\SettingsController::index');
     $routes->post('settings', 'Admin\SettingsController::update');
     $routes->post('settings/maintenance', 'Admin\SettingsController::maintenance');
     $routes->get('announcements', 'Admin\AnnouncementsController::index');
     $routes->post('announcements', 'Admin\AnnouncementsController::create');
+    $routes->post('announcements/bulk', 'Admin\AnnouncementsController::bulk');
+    $routes->get('announcements/delivery', 'Admin\AnnouncementsController::delivery');
+    $routes->post('announcements/(:num)/delete', 'Admin\AnnouncementsController::delete/$1');
     $routes->post('announcements/(:num)/publish', 'Admin\AnnouncementsController::publish/$1');
     $routes->post('announcements/(:num)/archive', 'Admin\AnnouncementsController::archive/$1');
     $routes->get('invitations', 'Admin\InvitationsController::index');
@@ -100,6 +106,7 @@ $routes->group('admin', ['filter' => 'admin'], static function (RouteCollection 
     $routes->post('audit/clear', 'Admin\AuditController::clear');
     $routes->post('audit/(:num)/delete', 'Admin\AuditController::delete/$1');
     $routes->post('invitations', 'Admin\InvitationsController::create');
+    $routes->post('invitations/bulk', 'Admin\InvitationsController::bulk');
     $routes->post('invitations/(:num)/update', 'Admin\InvitationsController::update/$1');
     $routes->post('invitations/(:num)/delete', 'Admin\InvitationsController::delete/$1');
     $routes->post('invitations/(:num)/revoke', 'Admin\InvitationsController::revoke/$1');

@@ -20,6 +20,7 @@ class PrivateInputFilter implements FilterInterface
             return null;
         }
         $response->setHeader('X-CSRF-TOKEN', csrf_hash());
+        $this->preserveContext($request, $response);
         if ($request->getHeaderLine('X-Cloud-Frame') === '1' && str_contains($response->getHeaderLine('Content-Type'), 'text/html')) {
             $body = $response->getBody();
             if (str_contains($body, 'id="cloud-shell"')) {
@@ -38,6 +39,28 @@ class PrivateInputFilter implements FilterInterface
             $session->set('_ci_old_input', $this->sanitize($input));
         }
         return null;
+    }
+
+    private function preserveContext(RequestInterface $request, ResponseInterface $response): void
+    {
+        if (strtoupper($request->getMethod()) !== 'POST' || $request->getHeaderLine('X-Cloud-Frame') !== '1' || ! $response->hasHeader('Location')) return;
+        $context = $request->getHeaderLine('X-Cloud-Context');
+        if (strlen($context) > 2000 || ! str_starts_with($context, '/') || str_starts_with($context, '//') || preg_match('/[\r\n\\\\]/', $context)) return;
+        $normalize = static fn (string $path): string => preg_replace('#^/index\.php(?:/|$)#', '/', $path);
+        $path = $normalize((string) parse_url($context, PHP_URL_PATH));
+        $destination = $normalize((string) parse_url($response->getHeaderLine('Location'), PHP_URL_PATH));
+        $postPath = $normalize('/' . trim($request->getUri()->getPath(), '/'));
+        $same = $path === $destination;
+        $drivePages = ['drive', 'drive/recent', 'drive/starred', 'drive/trash', 'drive/shared-with-me', 'drive/shared-by-me'];
+        $drive = in_array(trim($path, '/'), $drivePages, true) && in_array(trim($destination, '/'), $drivePages, true) && str_starts_with($postPath, '/drive/');
+        $notice = preg_match('#^/notifications(?:/\d+)?$#', $path) && $destination === '/notifications'
+            && preg_match('#^/notifications/(?:\d+/read|read-all)$#', $postPath);
+        if (! $same && ! $drive && ! $notice) return;
+        if (! preg_match('#^/(?:admin/(?:users(?:/\d+)?|invitations|announcements|settings|activity)|drive(?:/[a-z-]+)?|settings|notifications(?:/\d+)?)$#', $path)) return;
+        parse_str((string) parse_url($context, PHP_URL_QUERY), $query);
+        $allowed = ['q', 'status', 'role', 'page', 'perPage', 'sort', 'dir', 'view', 'folder', 'type', 'ext', 'date_from', 'date_to', 'category', 'action', 'size_min', 'size_max'];
+        $query = array_filter(array_intersect_key($query, array_flip($allowed)), static fn ($value) => is_scalar($value) && strlen((string) $value) <= 200);
+        $response->setHeader('Location', site_url(ltrim($path, '/')) . ($query === [] ? '' : '?' . http_build_query($query)));
     }
 
     private function sanitize(array $input): array

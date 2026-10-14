@@ -88,7 +88,6 @@
       window.feather.replace();
     }
 
-    window.scrollTo(0, 0);
   }
 
   function handleHtmlResponse(response, fallbackUrl, pushState) {

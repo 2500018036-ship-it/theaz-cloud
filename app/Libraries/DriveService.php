@@ -400,6 +400,7 @@ class DriveService
         };
 
         $total = (int) $builderFactory()->countAllResults();
+        $page = min($page, max(1, (int) ceil($total / $perPage)));
         $rows = $builderFactory()
             ->orderBy('version.created_at', 'DESC')
             ->orderBy('version.id', 'DESC')
@@ -768,6 +769,19 @@ class DriveService
         $favorite = $this->favorites->where('user_id', $userId)->where('item_id', $itemId)->first();
         if ($favorite !== null) {
             $this->favorites->delete($favorite['id']);
+        }
+    }
+
+    public function validateBulkSelection(int $userId, array $ids, string $action): void
+    {
+        if (! in_array($action, ['star', 'unstar', 'delete', 'restore', 'destroy', 'move', 'copy'], true)) throw new \DomainException('Bulk action is not available.');
+        foreach ($ids as $id) {
+            $item = in_array($action, ['star', 'unstar', 'restore', 'destroy'], true)
+                ? $this->findOwnedItem($userId, $id, in_array($action, ['restore', 'destroy'], true))
+                : $this->accessibleItem($userId, $id, $action === 'copy' ? self::PERMISSION_VIEWER : self::PERMISSION_EDITOR);
+            if ($item['status'] !== (in_array($action, ['restore', 'destroy'], true) ? 'trashed' : 'active')) {
+                throw new \DomainException('Some items are no longer available for this action.');
+            }
         }
     }
 
@@ -1500,6 +1514,7 @@ class DriveService
         };
 
         $total = (int) $builderFactory()->countAllResults();
+        $page = min($page, max(1, (int) ceil($total / $perPage)));
         $builder = $builderFactory();
 
         if ($section === 'recent') {

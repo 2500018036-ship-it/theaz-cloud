@@ -191,6 +191,34 @@ class InvitationService
             ]);
     }
 
+    public function bulk(int $actorId, mixed $selection, string $action): int
+    {
+        (new AdminAuthorization($this->db))->requirePermission($actorId, 'invitations.manage');
+        $ids = BulkSelection::ids($selection);
+        $this->expireStale();
+        $this->db->transBegin();
+        try {
+            $rows = $this->db->table('invitation_codes')->whereIn('id', $ids)->where('deleted_at', null)->get()->getResultArray();
+            if (count($rows) !== count($ids) || ! in_array($action, ['delete', 'revoke'], true)) throw new \DomainException('Invalid selection or action.');
+            foreach ($rows as $row) {
+                $allowed = $action === 'delete' ? in_array($row['status'], ['expired', 'revoked'], true)
+                    : $row['status'] === 'active' && (int) $row['use_count'] < (int) $row['max_uses'];
+                if (! $allowed) throw new \DomainException('Some invitations are not eligible for this action.');
+            }
+            foreach ($ids as $id) {
+                if (! ($action === 'delete' ? $this->archive($id, $actorId) : $this->revoke($id, $actorId))) {
+                    throw new \DomainException('Invitation changed. Refresh the selection and try again.');
+                }
+            }
+            if (! $this->db->transStatus()) throw new \RuntimeException('Bulk transaction failed.');
+            $this->db->transCommit();
+            return count($ids);
+        } catch (\Throwable $exception) {
+            $this->db->transRollback();
+            throw $exception;
+        }
+    }
+
     public function archive(int $id, int $actorId): bool
     {
         (new AdminAuthorization($this->db))->requirePermission($actorId, 'invitations.manage');

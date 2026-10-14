@@ -61,6 +61,16 @@ class UsersController extends BaseController
         }
     }
 
+    public function delete(int $id): RedirectResponse
+    {
+        try {
+            $this->admin->deleteUser($this->currentUserId(), $id);
+            return redirect()->to('/admin/users')->with('message', 'User deleted. Stored files and history are retained for recovery.');
+        } catch (\Throwable $exception) {
+            return redirect()->to('/admin/users')->with('error', $exception->getMessage());
+        }
+    }
+
     public function updateStatus(int $id): RedirectResponse
     {
         try {

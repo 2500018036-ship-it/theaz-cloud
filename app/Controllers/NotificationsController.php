@@ -42,9 +42,33 @@ class NotificationsController extends BaseController
         ]);
     }
 
+    public function show(int $id): string|\CodeIgniter\HTTP\ResponseInterface
+    {
+        try {
+            return view('notifications/detail', ['title' => 'Notification', 'pageTitle' => 'Notification', 'activeMenu' => 'notifications',
+                'currentUser' => $this->currentUser(), 'notice' => $this->notifications->notificationForUser($this->currentUserId(), $id)]);
+        } catch (\DomainException) {
+            return $this->response->setStatusCode(404)->setBody('Notification was not found.');
+        }
+    }
+
+    public function open(int $id): RedirectResponse
+    {
+        try {
+            $this->notifications->markRead($this->currentUserId(), $id);
+            return redirect()->to('/notifications/' . $id);
+        } catch (\DomainException) {
+            return redirect()->to('/notifications')->with('error', 'Notification was not found.');
+        }
+    }
+
     public function markRead(int $id): RedirectResponse
     {
-        $this->notifications->markRead($this->currentUserId(), $id);
+        try {
+            $this->notifications->markRead($this->currentUserId(), $id);
+        } catch (\DomainException) {
+            return redirect()->to('/notifications')->with('error', 'Notification was not found.');
+        }
 
         return redirect()->to('/notifications')->with('message', 'Notification marked as read.');
     }

@@ -129,6 +129,9 @@ $urlWith = static function (array $overrides = []) use ($query): string {
                 <td class="text-end">
                   <div class="d-flex flex-wrap gap-2 justify-content-end">
                     <?php if ($canChangeStatus): ?>
+                      <form action="<?= site_url('admin/users/' . $user['id'] . '/delete') ?>" method="post" data-confirm="Delete this user and revoke access? Stored files and history will be retained.">
+                        <?= csrf_field() ?><button type="submit" class="btn btn-sm btn-light-danger"><i class="ti ti-trash me-1"></i><?= esc(lang('UI.te2d0a54968ea')) ?></button>
+                      </form>
                       <form action="<?= site_url('admin/users/' . $user['id'] . '/status') ?>" method="post" class="d-inline-flex gap-1" data-admin-confirm="Change this user's status?">
                         <?= csrf_field() ?>
                         <select name="status" class="form-select form-select-sm" aria-label="<?= esc(lang('UI.t920e413c7d41'), 'attr') ?>">

@@ -246,6 +246,7 @@ class AdminService
         };
 
         $total = (int) $builderFactory()->countAllResults();
+        $page = min($page, max(1, (int) ceil($total / $perPage)));
         $rows = $builderFactory()
             ->orderBy('created_at', 'DESC')
             ->orderBy('id', 'DESC')
@@ -313,6 +314,32 @@ class AdminService
                 ->get()
                 ->getResultArray(),
         ];
+    }
+
+    public function deleteUser(int $adminId, int $targetUserId): void
+    {
+        (new AdminAuthorization($this->db))->requirePermission($adminId, 'users.manage');
+        $target = $this->db->table('users')->where('id', $targetUserId)->where('deleted_at', null)->get()->getRowArray();
+        if ($target === null || $target['role'] === 'super_admin' || $adminId === $targetUserId) {
+            throw new \DomainException('The primary administrator cannot be deleted.');
+        }
+        $now = Time::now()->toDateTimeString();
+        $this->db->transBegin();
+        try {
+            $this->db->table('users')->where('id', $targetUserId)->where('role', 'user')->where('deleted_at', null)
+                ->update(['status' => 'inactive', 'deleted_at' => $now, 'updated_at' => $now]);
+            if ($this->db->affectedRows() !== 1) throw new \DomainException('User could not be deleted.');
+            $this->db->table('drive_shares')->groupStart()->where('user_id', $targetUserId)->orWhere('shared_with_user_id', $targetUserId)->groupEnd()
+                ->where('revoked_at', null)->update(['revoked_at' => $now, 'updated_at' => $now]);
+            $this->db->table('email_queue')->where('user_id', $targetUserId)->where('status', 'queued')
+                ->update(['status' => 'cancelled', 'last_error' => 'Account deleted.']);
+            $this->activity->record($adminId, 'admin.user.delete', 'success', ['type' => 'user', 'id' => $targetUserId], [], $targetUserId);
+            if (! $this->db->transStatus()) throw new \RuntimeException('Deletion transaction failed.');
+            $this->db->transCommit();
+        } catch (\Throwable $exception) {
+            $this->db->transRollback();
+            throw $exception;
+        }
     }
 
     public function updateUserStatus(int $adminId, int $targetUserId, string $status): array
@@ -429,6 +456,7 @@ class AdminService
         };
 
         $total = (int) $builderFactory()->countAllResults();
+        $page = min($page, max(1, (int) ceil($total / $perPage)));
         $rows = $builderFactory()
             ->orderBy('invitation.created_at', 'DESC')
             ->orderBy('invitation.id', 'DESC')
@@ -508,6 +536,7 @@ class AdminService
             ->where('role', AdminAuthorization::ROLE_USER);
 
         $total = (int) $builderFactory()->countAllResults();
+        $page = min($page, max(1, (int) ceil($total / $perPage)));
         $rows = $builderFactory()
             ->orderBy('storage_used_bytes', 'DESC')
             ->orderBy('id', 'DESC')

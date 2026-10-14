@@ -27,6 +27,7 @@ $formatDate = static function ($value): string {
       </div>
       <form action="<?= site_url('admin/announcements') ?>" method="post" class="card-body">
         <?= csrf_field() ?>
+        <input type="hidden" name="request_key" value="<?= esc((string) (old('request_key') ?: bin2hex(random_bytes(32)))) ?>">
         <div class="mb-3">
           <label class="form-label" for="announcement-title"><?= esc(lang('UI.t7e8cd2056da7')) ?></label>
           <input type="text" class="form-control" id="announcement-title" name="title" maxlength="190" value="<?= esc(old('title')) ?>" required>
@@ -42,6 +43,7 @@ $formatDate = static function ($value): string {
             <option value="email"><?= esc(lang('UI.t621f30a05932')) ?></option>
             <option value="notification,email"><?= esc(lang('UI.te4bc37cdf27e')) ?></option>
           </select>
+          <p class="form-text"><?= esc(lang('App.actions.emailPreference')) ?></p>
         </div>
         <div class="mb-3">
           <label class="form-label" for="announcement-target"><?= esc(lang('UI.t978354db0c00')) ?></label>
@@ -74,6 +76,7 @@ $formatDate = static function ($value): string {
         <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
           <h5 class="mb-0"><?= esc(lang('UI.tfe02680f2479')) ?></h5>
           <form action="<?= esc($basePath) ?>" method="get" class="d-flex gap-2">
+            <input type="search" name="q" class="form-control form-control-sm" value="<?= esc($query['q'] ?? '') ?>" placeholder="<?= esc(lang('UI.t054efefc16c2'), 'attr') ?>">
             <select name="status" class="form-select form-select-sm">
               <option value=""><?= esc(lang('UI.ta52ace420f21')) ?></option>
               <?php foreach (['draft', 'published', 'archived'] as $status): ?>
@@ -85,6 +88,8 @@ $formatDate = static function ($value): string {
         </div>
       </div>
       <div class="card-body table-border-style">
+        <?= view('components/app/bulk_toolbar', ['id' => 'announcement-bulk', 'action' => site_url('admin/announcements/bulk'),
+            'options' => ['delete' => lang('UI.te2d0a54968ea'), 'archive' => lang('UI.t66f4804ee23d')]]) ?>
         <?php if ($announcements === []): ?>
           <?= view('components/ui/empty_state', [
               'icon' => 'ti ti-speakerphone',
@@ -96,6 +101,7 @@ $formatDate = static function ($value): string {
             <table class="table align-middle mb-0">
               <thead>
                 <tr>
+                  <th><?= esc(lang('App.actions.select')) ?></th>
                   <th><?= esc(lang('UI.t7e8cd2056da7')) ?></th>
                   <th><?= esc(lang('UI.t920e413c7d41')) ?></th>
                   <th><?= esc(lang('UI.t978354db0c00')) ?></th>
@@ -107,19 +113,26 @@ $formatDate = static function ($value): string {
               <tbody>
                 <?php foreach ($announcements as $announcement): ?>
                   <tr>
+                    <td><input class="form-check-input" type="checkbox" id="announcement-select-<?= (int) $announcement['id'] ?>" data-select-item data-select-actions="delete archive" form="announcement-bulk" name="selected[]" value="<?= (int) $announcement['id'] ?>" aria-label="<?= esc(lang('App.actions.select'), 'attr') ?>"></td>
                     <td>
                       <div class="fw-semibold"><?= esc($announcement['title']) ?></div>
                       <div class="text-muted small text-truncate" style="max-width:280px"><?= esc($announcement['body']) ?></div>
                     </td>
-                    <td><span class="badge bg-light-secondary text-secondary"><?= esc($announcement['status']) ?></span></td>
+                    <td><span class="badge bg-light-secondary text-secondary"><?= esc(lang('App.actions.' . $announcement['status'])) ?></span></td>
                     <td><?= esc($announcement['target_type'] === 'user' ? (($announcement['target_username'] ?? 'User') . ' <' . ($announcement['target_email'] ?? '') . '>') : 'All active users') ?></td>
                     <td>
                       <div><?= esc($announcement['channels']) ?></div>
-                      <div class="text-muted small">N: <?= esc($announcement['notification_status']) ?>, E: <?= esc($announcement['email_status']) ?></div>
+                      <div class="text-muted small">N: <?= esc($announcement['notification_status']) ?></div>
+                      <div class="small" data-delivery-id="<?= (int) $announcement['id'] ?>" data-delivery-pending="<?= $announcement['email_status'] === 'queued' ? '1' : '0' ?>"><?= esc(lang('App.actions.delivery')) ?>: <?= esc(lang('App.actions.' . ($announcement['status'] === 'draft' ? 'pending' : $announcement['delivery']['status']))) ?> (<?= (int) $announcement['delivery']['sent'] ?>/<?= (int) $announcement['delivery']['total'] ?>)</div>
+                      <?php if ($announcement['delivery']['error']): ?><div class="text-danger small"><?= esc(lang($announcement['delivery']['failed'] > 0 ? 'App.actions.emailFailed' : 'App.actions.emailRetry')) ?></div><?php endif; ?>
+                      <?php if ($announcement['email_status'] === 'skipped'): ?><div class="text-muted small"><?= esc(lang('App.actions.noEmailRecipients')) ?></div><?php endif; ?>
                     </td>
                     <td><?= esc($formatDate($announcement['published_at'] ?? null)) ?></td>
                     <td class="text-end">
                       <div class="d-inline-flex gap-2">
+                        <form action="<?= site_url('admin/announcements/' . $announcement['id'] . '/delete') ?>" method="post" data-confirm="Delete this announcement? Delivery history will be retained.">
+                          <?= csrf_field() ?><button type="submit" class="btn btn-sm btn-light-danger"><?= esc(lang('UI.te2d0a54968ea')) ?></button>
+                        </form>
                         <?php if ($announcement['status'] === 'draft'): ?>
                           <form action="<?= site_url('admin/announcements/' . $announcement['id'] . '/publish') ?>" method="post">
                             <?= csrf_field() ?>

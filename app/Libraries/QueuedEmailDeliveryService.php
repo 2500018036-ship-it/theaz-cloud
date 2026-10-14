@@ -106,6 +106,7 @@ class QueuedEmailDeliveryService
 
         if (preg_match('/@(?:[^@]+\.)?(test|invalid|localhost)$/i', (string) $row['recipient_email'])) {
             $this->queue->update($id, ['status' => 'cancelled', 'last_error' => 'Reserved test recipient.']);
+            $this->syncAnnouncement($row);
             return ['sent' => false, 'id' => $id, 'error' => null, 'skipped' => true];
         }
 
@@ -143,6 +144,7 @@ class QueuedEmailDeliveryService
                 'last_error' => null,
                 'sent_at'    => Time::now()->toDateTimeString(),
             ]);
+            $this->syncAnnouncement($row);
 
             return ['sent' => true, 'id' => $id, 'error' => null];
         } catch (\Throwable $exception) {
@@ -154,8 +156,21 @@ class QueuedEmailDeliveryService
                 'last_error'   => mb_substr($error, 0, 500),
                 'available_at' => $retry ? Time::now()->addMinutes(5 * $attempts)->toDateTimeString() : Time::now()->toDateTimeString(),
             ]);
+            $this->syncAnnouncement($row);
 
             return ['sent' => false, 'id' => $id, 'error' => $error];
+        }
+    }
+
+    private function syncAnnouncement(array $row): void
+    {
+        if ($row['event_type'] === 'announcement' && (int) ($row['event_id'] ?? 0) > 0) {
+            try {
+                (new AnnouncementDeliveryService())->sync((int) $row['event_id']);
+            } catch (\Throwable) {
+                // A reporting failure must never requeue an email already accepted by SMTP.
+                log_message('warning', 'Announcement delivery summary could not be refreshed.');
+            }
         }
     }
 

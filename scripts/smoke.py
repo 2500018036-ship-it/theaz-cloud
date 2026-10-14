@@ -89,7 +89,7 @@ def main():
     if args.project:
         compose += ['-p', args.project]
     def cli(*command):
-        result = subprocess.run(compose + ['exec', '-T', 'app'] + list(command), cwd=args.compose_dir, capture_output=True, check=True)
+        result = subprocess.run(compose + ['exec', '-T', 'app'] + list(command), cwd=args.compose_dir, capture_output=True, check=True, stdin=subprocess.DEVNULL)
         return result.stdout
     fixture_path = '/tmp/cloud-smoke-' + secrets.token_hex(8) + '.json'
     cli('php', 'spark', 'ops:smoke-fixtures', '--output', fixture_path)
@@ -155,11 +155,36 @@ def main():
         overquota = one.request('/drive/upload', body, mime)
         assert b'quota' in overquota[1].lower(), 'Quota enforcement failed'
         assert one.request('/drive/items/' + ids[0] + '/download')[1] == payload, 'Quota failure damaged existing file'
+        cli('php', 'spark', 'ops:smoke-fixtures', '--output', fixture_path, '--tokens')
+        updated = json.loads(cli('cat', fixture_path))
+        target = updated['users'][0]
+        published = admin.post('/admin/announcements', {'title': 'Deployment notification',
+            'body': fixtures['admin']['email'] + ' ' + target['email'] + ' ' + updated['users'][1]['email'],
+            'channels': 'notification', 'target_type': 'user', 'target_user_id': target['id'],
+            'publish_now': '1', 'request_key': secrets.token_hex(32)})
+        assert b'Announcement saved' in published[1], 'Announcement creation failed'
+        summary = json.loads(one.request('/notifications/summary')[1])
+        notice = next(row for row in summary['items'] if row['title'] == 'Deployment notification')
+        assert fixtures['admin']['email'] not in notice['body'] and updated['users'][1]['email'] not in notice['body'], 'Notification leaked another email'
+        opened = one.post('/notifications/' + str(notice['id']) + '/open', {}, '/notifications')
+        assert opened[0] == 200 and opened[3].endswith('/notifications/' + str(notice['id'])), 'Notification did not open'
+        assert two.request('/notifications/' + str(notice['id']))[0] == 404, 'Notification detail exposed to another account'
+        assert json.loads(one.request('/notifications/summary')[1])['unread'] == 0, 'Opening did not mark notification read'
+        trashed = one.post('/drive/bulk', {'selected[]': ids[0], 'bulk_action': 'delete'}, '/drive')
+        assert b'Bulk action completed' in trashed[1], 'Bulk trash failed'
+        restored = one.post('/drive/bulk', {'selected[]': ids[0], 'bulk_action': 'restore'}, '/drive/trash')
+        assert b'Bulk action completed' in restored[1], 'Bulk restore failed'
+        assert one.request('/drive/items/' + ids[0] + '/download')[1] == payload, 'Bulk restore damaged bytes'
+        protected = admin.post('/admin/users/' + str(fixtures['admin']['id']) + '/delete', {}, '/admin/users')
+        assert b'primary administrator cannot be deleted' in protected[1].lower(), 'Owner deletion was not rejected'
         if args.url.startswith('https://'):
             sessions = [cookie for cookie in one.cookies if cookie.name == 'ci_session']
             assert sessions and all(cookie.secure and 'HttpOnly' in cookie._rest for cookie in sessions), 'Session cookie flags missing'
         transport = 'HTTPS certificate and secure cookies, ' if args.url.startswith('https://') else 'HTTP, '
-        print('PASS: ' + transport + 'health, invite registration, CSRF, user/admin login, folder, upload, download SHA-256, user isolation, quota')
+        deleted = admin.post('/admin/users/' + str(target['id']) + '/delete', {}, '/admin/users')
+        assert b'User deleted' in deleted[1], 'User deletion failed'
+        assert '/login' in one.request('/drive')[3], 'Deleted user retained access'
+        print('PASS: ' + transport + 'health, verified invite registration, CSRF, user/admin access, file integrity/isolation/quota, bulk trash/restore, notification privacy/read/detail, user deletion/owner protection')
     finally:
         cli('php', 'spark', 'ops:smoke-fixtures', '--output', fixture_path, '--finish')
 

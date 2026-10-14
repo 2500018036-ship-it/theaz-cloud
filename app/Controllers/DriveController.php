@@ -511,6 +511,7 @@ class DriveController extends BaseController
 
         try {
             $userId = $this->currentUserId();
+            $this->drive->validateBulkSelection($userId, $ids, $action);
 
             match ($action) {
                 'star' => array_map(fn (int $id) => $this->drive->starItem($userId, $id), $ids),
@@ -855,7 +856,11 @@ class DriveController extends BaseController
             return [];
         }
 
-        return array_values(array_unique(array_filter(array_map('intval', $selected))));
+        try {
+            return \App\Libraries\BulkSelection::ids($selected);
+        } catch (\DomainException) {
+            return [];
+        }
     }
 
     private function currentUserId(): int
