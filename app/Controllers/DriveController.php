@@ -140,7 +140,7 @@ class DriveController extends BaseController
         }
     }
 
-    public function upload(): RedirectResponse
+    public function upload(): RedirectResponse|ResponseInterface
     {
         $folderId = $this->nullableInt($this->request->getPost('parent_id'));
         $context = $this->driveContext();
@@ -159,6 +159,14 @@ class DriveController extends BaseController
             } catch (\Throwable $exception) {
                 $errors[] = $file->getClientName() . ': ' . $exception->getMessage();
             }
+        }
+
+        if (str_contains($this->request->getHeaderLine('Accept'), 'application/json')) {
+            if ($errors !== [] || $created === 0) {
+                return $this->jsonError(implode("\n", $errors) ?: 'No files were uploaded.');
+            }
+
+            return $this->jsonResponse(['success' => true, 'created' => $created]);
         }
 
         $redirect = $this->redirectToFolder($folderId, $context);
@@ -270,6 +278,52 @@ class DriveController extends BaseController
                 $this->currentUserId(),
                 (string) $this->request->getPost('upload_id'),
             );
+
+            return $this->jsonResponse(['success' => true]);
+        } catch (\Throwable $exception) {
+            return $this->jsonError($exception->getMessage());
+        }
+    }
+
+    public function uploadBatchInit(): ResponseInterface
+    {
+        try {
+            $files = json_decode((string) $this->request->getPost('files'), true, 32, JSON_THROW_ON_ERROR);
+            if (! is_array($files)) throw new \DomainException('Invalid upload manifest.');
+            $result = (new \App\Libraries\BatchUploadService())->init($this->currentUserId(), $this->nullableInt($this->request->getPost('parent_id')), $files);
+
+            return $this->jsonResponse(['success' => true] + $result);
+        } catch (\Throwable $exception) {
+            return $this->jsonError($exception->getMessage());
+        }
+    }
+
+    public function uploadBatchStage(): ResponseInterface
+    {
+        try {
+            $result = (new \App\Libraries\BatchUploadService())->stage($this->currentUserId(), (string) $this->request->getPost('batch_id'), (string) $this->request->getPost('upload_id'));
+
+            return $this->jsonResponse(['success' => true] + $result);
+        } catch (\Throwable $exception) {
+            return $this->jsonError($exception->getMessage());
+        }
+    }
+
+    public function uploadBatchComplete(): ResponseInterface
+    {
+        try {
+            $item = (new \App\Libraries\BatchUploadService())->complete($this->currentUserId(), (string) $this->request->getPost('batch_id'));
+
+            return $this->jsonResponse(['success' => true, 'item' => $item]);
+        } catch (\Throwable $exception) {
+            return $this->jsonError($exception->getMessage());
+        }
+    }
+
+    public function uploadBatchCancel(): ResponseInterface
+    {
+        try {
+            (new \App\Libraries\BatchUploadService())->cancel($this->currentUserId(), (string) $this->request->getPost('batch_id'));
 
             return $this->jsonResponse(['success' => true]);
         } catch (\Throwable $exception) {
@@ -439,6 +493,31 @@ class DriveController extends BaseController
         return $this->itemAction(function (DriveService $drive, int $userId) use ($id): void {
             $drive->copyItem($userId, $id, $this->nullableInt($this->request->getPost('target_folder_id')));
         }, 'Item copied.', 'target-modal');
+    }
+
+    public function extract(int $id): RedirectResponse|ResponseInterface
+    {
+        try {
+            $folder = $this->drive->extractArchive(
+                $this->currentUserId(),
+                $id,
+                $this->nullableInt($this->request->getPost('target_folder_id')),
+            );
+
+            $folderUrl = site_url(((int) $folder['user_id'] === $this->currentUserId() ? 'drive' : 'drive/shared-with-me') . '?folder=' . $folder['id']);
+            if (str_contains($this->request->getHeaderLine('Accept'), 'application/json')) {
+                return $this->jsonResponse(['success' => true, 'folder' => $folder, 'folder_url' => $folderUrl, 'message' => lang('App.transfers.extracted')]);
+            }
+
+            return redirect()->to($folderUrl)->with('message', lang('App.transfers.extracted'));
+        } catch (\Throwable $exception) {
+            if (str_contains($this->request->getHeaderLine('Accept'), 'application/json')) {
+                return $this->jsonError($exception->getMessage());
+            }
+
+            return $this->redirectToFolder($this->nullableInt($this->request->getPost('parent_id')), $this->driveContext())
+                ->with('error', $exception->getMessage())->with('modal', 'extract-modal')->with('modal_error', $exception->getMessage());
+        }
     }
 
     public function delete(int $id): RedirectResponse
@@ -732,6 +811,8 @@ class DriveController extends BaseController
             ? (string) ($profile['default_sort'] ?? 'name')
             : 'name';
         $defaultDir = (string) ($profile['default_sort_dir'] ?? 'asc') === 'desc' ? 'desc' : 'asc';
+        $requestedView = (string) ($this->request->getGet('view') ?? $defaultView);
+        $viewMode = in_array($requestedView, ['list', 'grid', 'gallery'], true) ? $requestedView : 'list';
         $filters = [
             'q'         => $this->request->getGet('q'),
             'sort'      => $this->request->getGet('sort') ?? $defaultSort,
@@ -745,6 +826,10 @@ class DriveController extends BaseController
             'date_from' => $this->request->getGet('date_from'),
             'date_to'   => $this->request->getGet('date_to'),
         ];
+        if ($viewMode === 'gallery') {
+            $filters['type'] = 'image';
+            $filters['perPage'] ??= 48;
+        }
         $result = match ($section) {
             'recent' => $this->drive->listRecent($userId, $filters),
             'starred' => $this->drive->listStarred($userId, $filters),
@@ -777,7 +862,7 @@ class DriveController extends BaseController
             'currentUser'   => $this->currentUser(),
             'section'       => $section,
             'folderId'      => $folderId,
-            'viewMode'      => $this->request->getGet('view') === null ? $defaultView : ($this->request->getGet('view') === 'grid' ? 'grid' : 'list'),
+            'viewMode'      => $viewMode,
             'items'         => $result['items'],
             'pager'         => $result['pager'],
             'storage'       => $this->drive->userStorageSummary($userId),

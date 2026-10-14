@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   var parser = new DOMParser(), pendingNavigation, mutation = Promise.resolve(), busyForms = new WeakSet();
-  var direct = /\/(?:download|bulk-download|preview|thumbnail|thumb|avatar|info|text)(?:\/|$)|\/upload\/(?:init|chunk|complete|cancel)$/;
+  var direct = /\/(?:download|bulk-download|preview|thumbnail|thumb|avatar|info|text)(?:\/|$)|\/upload\/(?:batch\/)?(?:init|stage|chunk|complete|cancel)$/;
   var reverseTranslations;
   var renderedUrl = location.href, savedScroll = new Map(), savedQueries = new Map();
   function t(text) {

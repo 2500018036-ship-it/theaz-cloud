@@ -8,7 +8,7 @@ class CloudDrive extends BaseConfig
 {
     public string $storagePath = WRITEPATH . 'cloud-drive';
 
-    public int $maxUploadSizeBytes = 104_857_600;
+    public int $maxUploadSizeBytes = 128_849_018_880; // 120 GiB, displayed as GB in the UI.
 
     public int $pageSize = 24;
 
@@ -16,13 +16,22 @@ class CloudDrive extends BaseConfig
 
     public int $tempFileMaxAgeSeconds = 86_400;
 
-    public int $chunkSizeBytes = 2_097_152;
+    // Keep all chunk indexes for a maximum-size upload within the database TEXT field.
+    public int $chunkSizeBytes = 16_777_216;
 
     public int $chunkMaxAgeSeconds = 86_400;
 
-    public int $maxBulkDownloadFiles = 100;
+    public int $maxBulkDownloadFiles = 2000;
 
-    public int $maxBulkDownloadBytes = 524_288_000;
+    public int $maxBulkDownloadBytes = 128_849_018_880;
+
+    public int $autoZipThreshold = 10;
+
+    public int $maxZipUploadFiles = 2000;
+
+    public int $maxArchiveEntries = 2000;
+
+    public int $maxArchiveExtractBytes = 1_073_741_824;
 
     public int $thumbnailMaxWidth = 240;
 

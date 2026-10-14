@@ -19,7 +19,7 @@ $locale = in_array($locale, ['en', 'id'], true) ? $locale : 'en';
   <link rel="stylesheet" href="<?= $assetBase ?>/fonts/feather.css">
   <link rel="stylesheet" href="<?= $assetBase ?>/css/style.css" id="main-style-link">
   <link rel="stylesheet" href="<?= $assetBase ?>/css/style-preset.css">
-  <link rel="stylesheet" href="<?= base_url('assets/css/drive-ui.css') ?>?v=<?= esc($assetVersion) ?>">
+  <link rel="stylesheet" href="<?= base_url('assets/css/drive-ui.css') ?>?v=<?= esc($assetVersion . '-' . filemtime(FCPATH . 'assets/css/drive-ui.css')) ?>">
 <link rel="stylesheet" href="<?= base_url('assets/css/app-ui.css') ?>?v=<?= esc($assetVersion) ?>">
   <?= $this->renderSection('pageStyles') ?>
 </head>

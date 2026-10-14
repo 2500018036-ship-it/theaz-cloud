@@ -58,6 +58,10 @@ $routes->group('drive', ['filter' => 'auth'], static function (RouteCollection $
     $routes->post('upload/chunk', 'DriveController::uploadChunk');
     $routes->post('upload/complete', 'DriveController::uploadComplete');
     $routes->post('upload/cancel', 'DriveController::uploadCancel');
+    $routes->post('upload/batch/init', 'DriveController::uploadBatchInit');
+    $routes->post('upload/batch/stage', 'DriveController::uploadBatchStage');
+    $routes->post('upload/batch/complete', 'DriveController::uploadBatchComplete');
+    $routes->post('upload/batch/cancel', 'DriveController::uploadBatchCancel');
     $routes->post('bulk', 'DriveController::bulk');
     $routes->post('bulk-download', 'DriveController::bulkDownload');
     $routes->get('items/(:num)/preview-info', 'DriveController::previewInfo/$1');
@@ -71,6 +75,7 @@ $routes->group('drive', ['filter' => 'auth'], static function (RouteCollection $
     $routes->post('items/(:num)/rename', 'DriveController::rename/$1');
     $routes->post('items/(:num)/move', 'DriveController::move/$1');
     $routes->post('items/(:num)/copy', 'DriveController::copy/$1');
+    $routes->post('items/(:num)/extract', 'DriveController::extract/$1');
     $routes->post('items/(:num)/delete', 'DriveController::delete/$1');
     $routes->post('items/(:num)/restore', 'DriveController::restore/$1');
     $routes->post('items/(:num)/destroy', 'DriveController::destroy/$1');

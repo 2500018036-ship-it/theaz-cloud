@@ -1,5 +1,6 @@
 <?php
 
+use App\Libraries\ChunkedUploadService;
 use App\Libraries\DriveService;
 use App\Models\UserModel;
 use CodeIgniter\Test\CIUnitTestCase;
@@ -220,6 +221,65 @@ final class DriveCoreTest extends CIUnitTestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Stored file is missing from disk.');
         $service->downloadableFile($userId, (int) $item['id']);
+    }
+
+    public function testChunkedUploadAcceptsSeventyGbWithIndexesFittingDatabase(): void
+    {
+        $limit = 75_161_927_680;
+        $userId = $this->createUser('largeupload', $limit);
+        $config = $this->config();
+        $config->maxUploadSizeBytes = $limit;
+        $config->chunkSizeBytes = 16_777_216;
+        $chunked = new ChunkedUploadService($this->db, $this->service($config), $config);
+
+        $session = $chunked->initUpload($userId, null, 'large.txt', $limit, 'text/plain');
+
+        $this->assertSame(4480, $session['total_chunks']);
+        $this->assertLessThanOrEqual(65_535, strlen(json_encode(range(0, $session['total_chunks'] - 1))));
+        $this->seeInDatabase('chunked_uploads', ['upload_id' => $session['upload_id'], 'file_size' => $limit]);
+        $chunked->cancelUpload($userId, $session['upload_id']);
+    }
+
+    public function testChunkedUploadRejectsFileAboveSeventyGb(): void
+    {
+        $userId = $this->createUser('oversizeupload', 75_161_927_681);
+        $config = $this->config();
+        $config->maxUploadSizeBytes = 75_161_927_680;
+        $chunked = new ChunkedUploadService($this->db, $this->service($config), $config);
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage('File exceeds the maximum upload size.');
+        $chunked->initUpload($userId, null, 'large.txt', 75_161_927_681, 'text/plain');
+    }
+
+    public function testLargeUploadStillRequiresSufficientUserQuota(): void
+    {
+        $userId = $this->createUser('limitedupload', 5_368_709_120);
+        $config = $this->config();
+        $config->maxUploadSizeBytes = 75_161_927_680;
+        $chunked = new ChunkedUploadService($this->db, $this->service($config), $config);
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage('Not enough storage quota.');
+        $chunked->initUpload($userId, null, 'large.txt', 75_161_927_680, 'text/plain');
+    }
+
+    public function testChunkedUploadAssemblesAndStoresFile(): void
+    {
+        $userId = $this->createUser('chunkedroundtrip', 1024);
+        $config = $this->config();
+        $config->chunkSizeBytes = 4;
+        $chunked = new ChunkedUploadService($this->db, $this->service($config), $config);
+        $session = $chunked->initUpload($userId, null, 'chunks.txt', 11, 'text/plain');
+
+        foreach (['hell', 'o cl', 'oud'] as $index => $contents) {
+            $chunked->receiveChunk($userId, $session['upload_id'], $index, $this->tempFile('chunk.txt', $contents));
+        }
+
+        $item = $chunked->completeUpload($userId, $session['upload_id']);
+        $download = $this->service($config)->downloadableFile($userId, (int) $item['id']);
+        $this->assertSame('hello cloud', file_get_contents($download['path']));
+        $this->assertSame(11, (int) $item['size_bytes']);
     }
 
     private function createUser(string $username, int $quota): int

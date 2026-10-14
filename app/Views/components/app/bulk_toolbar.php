@@ -1,4 +1,4 @@
-<form id="<?= esc($id, 'attr') ?>" data-selection-form action="<?= esc($action) ?>" method="post" class="d-flex flex-wrap gap-2 align-items-center mb-3" data-confirm="Apply this action to the selected items?">
+<form id="<?= esc($id, 'attr') ?>" data-selection-form<?= ! empty($downloadAction) ? ' data-download-action="' . esc($downloadAction, 'attr') . '"' : '' ?> action="<?= esc($action) ?>" method="post" class="d-flex flex-wrap gap-2 align-items-center mb-3" data-confirm="Apply this action to the selected items?">
   <?= csrf_field() ?>
   <?php foreach (($hidden ?? []) as $name => $value): ?><input type="hidden" name="<?= esc($name, 'attr') ?>" value="<?= esc((string) $value, 'attr') ?>"><?php endforeach; ?>
   <label class="form-check d-flex gap-2 align-items-center mb-0">

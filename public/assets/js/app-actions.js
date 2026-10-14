@@ -29,6 +29,19 @@
     var form = document.getElementById(clear.dataset.selectClear);
     boxes(form).forEach(function (box) { box.checked = false; }); selection(form);
   });
+  document.addEventListener('submit', function (event) {
+    var form = event.target;
+    if (!form.dataset.downloadAction || form.elements.bulk_action.value !== 'download') return;
+    event.preventDefault(); event.stopImmediatePropagation();
+    var data = new FormData(form);
+    if (!data.getAll('selected[]').length) return;
+    var download = document.createElement('form');
+    download.action = form.dataset.downloadAction; download.method = 'post'; download.target = '_blank'; download.hidden = true;
+    data.forEach(function (value, name) {
+      var input = document.createElement('input'); input.type = 'hidden'; input.name = name; input.value = value; download.appendChild(input);
+    });
+    document.body.appendChild(download); download.submit(); download.remove();
+  }, true);
   async function pollDelivery() {
     if (polling || document.hidden) return;
     var elements = Array.from(document.querySelectorAll('[data-delivery-id][data-delivery-pending="1"]'));

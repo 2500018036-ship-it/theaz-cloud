@@ -353,6 +353,34 @@ class DriveService
         );
     }
 
+    public function uploadDestination(int $userId, ?int $parentId): array
+    {
+        $parent = $this->writableParent($userId, $parentId);
+
+        return $parent + ['available' => $this->userStorageSummary($parent['owner_id'])['available']];
+    }
+
+    public function uploadSizeLimit(): int
+    {
+        return $this->config->maxUploadSizeBytes;
+    }
+
+    public function validateUploadMetadata(string $name, int $size): void
+    {
+        if ($size < 0 || $size > $this->config->maxUploadSizeBytes) {
+            throw new \DomainException('File exceeds the maximum upload size.');
+        }
+        if ($name !== $this->sanitizeName($name) || ! in_array($this->extensionFromName($name), $this->config->allowedExtensions, true)) {
+            throw new \DomainException('File extension or name is not allowed.');
+        }
+    }
+
+    public function validateUploadSource(string $name, string $source): void
+    {
+        $size = (int) filesize($source);
+        $this->validateIncomingFile($name, $this->extensionFromName($name), $size === 0 ? 'application/octet-stream' : $this->detectMimeType($source), $size);
+    }
+
     public function importLocalFile(int $userId, ?int $parentId, string $sourcePath, string $clientName, ?string $mimeType = null, bool $deleteSource = false): array
     {
         if (! is_file($sourcePath)) {
@@ -372,6 +400,99 @@ class DriveService
                 return $deleteSource ? rename($sourcePath, $target) : copy($sourcePath, $target);
             },
         );
+    }
+
+    public function extractArchive(int $userId, int $itemId, ?int $targetParentId): array
+    {
+        $archive = $this->readableFile($userId, $itemId);
+        if (mb_strtolower((string) $archive['item']['extension']) !== 'zip') {
+            throw new \DomainException(lang('App.transfers.zipOnly'));
+        }
+        $ownerId = $this->writableParent($userId, $targetParentId)['owner_id'];
+        $extractor = new ArchiveExtractionService($this->config);
+        $unpacked = $extractor->unpack($archive['path'], $this->userStorageSummary($ownerId)['available']);
+        $storedPaths = [];
+
+        try {
+            // Validate MIME types too, before creating any visible files or folders.
+            foreach ($unpacked['entries'] as $entry) {
+                if (! $entry['directory']) {
+                    $name = basename($entry['path']);
+                    $this->validateIncomingFile($name, $this->extensionFromName($name), $this->detectMimeType($entry['source']), $entry['size']);
+                }
+            }
+
+            $this->db->transBegin();
+            try {
+                $this->reserveQuota($ownerId, $unpacked['size_bytes']);
+                $rootName = $this->nextAvailableName($ownerId, $targetParentId,
+                    $this->sanitizeName(pathinfo($archive['item']['name'], PATHINFO_FILENAME)));
+                $rootId = $this->insertExtractedFolder($ownerId, $targetParentId, $rootName);
+                $folders = ['' => $rootId];
+
+                foreach ($unpacked['entries'] as $entry) {
+                    $parts = explode('/', $entry['path']);
+                    $fileName = array_pop($parts);
+                    if ($entry['directory']) $parts[] = $fileName;
+                    $parentId = $rootId;
+                    $folderPath = '';
+                    foreach ($parts as $part) {
+                        $folderPath = ltrim($folderPath . '/' . mb_strtolower($part), '/');
+                        $folders[$folderPath] ??= $this->insertExtractedFolder($ownerId, $parentId, $part);
+                        $parentId = $folders[$folderPath];
+                    }
+                    if ($entry['directory']) continue;
+
+                    $extension = $this->extensionFromName($fileName);
+                    $physical = $this->newPhysicalPath($ownerId, $extension);
+                    $target = $this->storageRoot() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $physical['relative']);
+                    $this->ensureDirectory(dirname($target));
+                    $storedPaths[] = $target;
+                    if (! rename($entry['source'], $target)) {
+                        throw new \RuntimeException(lang('App.transfers.extractionFailed'));
+                    }
+                    $id = $this->items->insert([
+                        'user_id' => $ownerId, 'parent_id' => $parentId, 'type' => 'file',
+                        'name' => $fileName, 'normalized_name' => $this->normalizeName($fileName),
+                        'extension' => $extension, 'mime_type' => $this->detectMimeType($target),
+                        'size_bytes' => $entry['size'], 'physical_path' => $physical['relative'],
+                        'physical_name' => $physical['name'], 'checksum_sha256' => hash_file('sha256', $target),
+                        'status' => 'active',
+                    ], true);
+                    if (! is_int($id)) throw new \RuntimeException(lang('App.transfers.extractionFailed'));
+                }
+                if (! $this->db->transStatus()) throw new \RuntimeException(lang('App.transfers.extractionFailed'));
+                $this->db->transCommit();
+            } catch (\Throwable $exception) {
+                $this->db->transRollback();
+                $this->deletePaths($storedPaths);
+                throw $exception;
+            }
+
+            $folder = $this->accessibleItem($userId, $rootId);
+            $this->logActivity($userId, 'drive.extract', 'success', $folder, [
+                'source_item_id' => $itemId, 'size_bytes' => $unpacked['size_bytes'],
+            ]);
+
+            return $folder;
+        } catch (\Throwable $exception) {
+            $this->logFailure($userId, 'drive.extract', $itemId, $exception);
+            throw $exception;
+        } finally {
+            $extractor->cleanup($unpacked['directory']);
+        }
+    }
+
+    private function insertExtractedFolder(int $ownerId, ?int $parentId, string $name): int
+    {
+        $id = $this->items->insert([
+            'user_id' => $ownerId, 'parent_id' => $parentId, 'type' => 'folder',
+            'name' => $name, 'normalized_name' => $this->normalizeName($name),
+            'size_bytes' => 0, 'status' => 'active',
+        ], true);
+        if (! is_int($id)) throw new \RuntimeException(lang('App.transfers.extractionFailed'));
+
+        return $id;
     }
 
     public function fileForVersions(int $userId, int $itemId): array
@@ -1492,6 +1613,9 @@ class DriveService
             // Type filter
             if ($filterType === 'file' || $filterType === 'folder') {
                 $builder->where('item.type', $filterType);
+            }
+            if ($filterType === 'image') {
+                $builder->where('item.type', 'file')->like('item.mime_type', 'image/', 'after');
             }
 
             // Size range

@@ -108,6 +108,7 @@ $isStorageUser = $role === 'user';
               </select>
               <button type="submit" class="btn btn-light-primary"><i class="ti ti-database-plus me-1"></i><?= esc(lang('UI.t1509f561f241')) ?></button>
             </div>
+            <div class="form-text"><?= esc(lang('App.transfers.quotaHint', [round(($maxQuotaBytes ?? 128_849_018_880) / 1073741824, 2)])) ?></div>
           </form>
         <?php else: ?>
           <div class="alert alert-light-info mb-0">

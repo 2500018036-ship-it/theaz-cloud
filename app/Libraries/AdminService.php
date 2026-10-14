@@ -403,6 +403,11 @@ class AdminService
             throw new \DomainException('Quota must be positive.');
         }
 
+        $max = (new SystemSettingsService($this->db))->getInt('max_admin_assignable_quota_bytes', 128_849_018_880);
+        if ($quotaBytes > $max) {
+            throw new \DomainException(lang('App.transfers.quotaPolicy', [round($max / 1073741824, 2)]));
+        }
+
         $user = $this->findUser($targetUserId);
         if ((string) $user['role'] !== AdminAuthorization::ROLE_USER) {
             throw new \DomainException('Administrator accounts do not use personal storage quotas.');
