@@ -16,10 +16,10 @@ class PrivateInputFilter implements FilterInterface
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {
         $response->setHeader('Cache-Control', 'no-store, private');
-        $response->setHeader('X-CSRF-TOKEN', csrf_hash());
         if (in_array(trim($request->getUri()->getPath(), '/'), ['health', 'ready'], true)) {
             return null;
         }
+        $response->setHeader('X-CSRF-TOKEN', csrf_hash());
         if ($request->getHeaderLine('X-Cloud-Frame') === '1' && str_contains($response->getHeaderLine('Content-Type'), 'text/html')) {
             $body = $response->getBody();
             if (str_contains($body, 'id="cloud-shell"')) {

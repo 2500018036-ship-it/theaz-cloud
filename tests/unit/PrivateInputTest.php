@@ -5,6 +5,27 @@ use CodeIgniter\Test\CIUnitTestCase;
 
 final class PrivateInputTest extends CIUnitTestCase
 {
+    public function testLocalHealthChecksDoNotGenerateSecureCsrfCookies(): void
+    {
+        $cookie = config(\Config\Cookie::class);
+        $originalSecure = $cookie->secure;
+        $cookie->secure = true;
+        $request = new \CodeIgniter\HTTP\Request(config(\Config\App::class));
+
+        try {
+            foreach (['/health', '/ready'] as $path) {
+                $request->getUri()->setPath($path);
+                $response = new \CodeIgniter\HTTP\Response(config(\Config\App::class));
+                (new PrivateInputFilter())->after($request, $response);
+                $this->assertFalse($response->hasHeader('X-CSRF-TOKEN'));
+                $this->assertSame([], $response->getCookies());
+                $this->assertStringContainsString('no-store', $response->getHeaderLine('Cache-Control'));
+            }
+        } finally {
+            $cookie->secure = $originalSecure;
+        }
+    }
+
     public function testFailedFormInputPreservesNamesWithoutPersistingCredentials(): void
     {
         session()->setFlashdata('_ci_old_input', ['post' => [
