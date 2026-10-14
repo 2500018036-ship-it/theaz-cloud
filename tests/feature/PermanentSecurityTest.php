@@ -138,6 +138,17 @@ final class PermanentSecurityTest extends CIUnitTestCase
         $this->expectException(DomainException::class); $service->archive($id, $ordinary);
     }
 
+    public function testFullyUsedInvitationCanBeArchivedAfterItsExpiry(): void
+    {
+        $owner = $this->user('owner', 'super_admin', 'active'); $user = $this->user('accepted');
+        $service = new InvitationService(db: $this->db); $code = $service->generatePlainCode();
+        $id = $service->create($code, 'Fully used', 1, null, $owner);
+        $service->consume($code); $service->attachAcceptedUser($id, $user);
+        $this->db->table('invitation_codes')->where('id', $id)->update(['expires_at' => '2020-01-01 00:00:00']);
+        $this->assertTrue($service->archive($id, $owner));
+        $this->seeInDatabase('invitation_codes', ['id' => $id, 'accepted_user_id' => $user, 'use_count' => 1, 'status' => 'expired']);
+    }
+
     public function testNotificationResponsesExposeOnlyRelevantRecipientEmail(): void
     {
         $one = $this->user('one'); $two = $this->user('two'); $service = new NotificationService($this->db);

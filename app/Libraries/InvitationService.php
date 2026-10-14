@@ -111,7 +111,7 @@ class InvitationService
         $this->db->table('invitation_codes')
             ->set('status', 'expired')
             ->set('updated_at', $now)
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'consumed'])
             ->where('expires_at IS NOT NULL', null, false)
             ->where('expires_at <', $now)
             ->update();

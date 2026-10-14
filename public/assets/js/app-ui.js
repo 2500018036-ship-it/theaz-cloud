@@ -45,7 +45,7 @@
       return {document: parser.parseFromString(html, 'text/html'), url: response.url || target};
     } finally { clearTimeout(timeout); }
   }
-  async function install(result, push, languageChange) {
+  async function install(result, push, languageChange, shouldInstall) {
     var next = result.document.querySelector('#cloud-shell'), current = document.getElementById('cloud-shell');
     if (!next || !current) throw new Error('The page could not be loaded. Please try again.');
     // Bootstrap callbacks still reference their instance until the transition ends.
@@ -58,6 +58,8 @@
         ['shown.bs.modal','hidden.bs.modal','shown.bs.offcanvas','hidden.bs.offcanvas'].forEach(function (event) { el.addEventListener(event, done, {once:true}); });
       });
     }));
+    if (shouldInstall && !shouldInstall()) return;
+    if (!current.isConnected) return;
     var values = [], open = [], preservedModals = [];
     if (languageChange) {
       document.querySelectorAll('.modal.show').forEach(function (m) { open.push(m.id); preservedModals.push(m); });
@@ -96,7 +98,7 @@
   async function navigate(target, push) {
     if (pendingNavigation) pendingNavigation.abort('superseded');
     var controller = new AbortController(); pendingNavigation = controller; loading(true);
-    try { await install(await request(target, {controller: controller}), push !== false, false); }
+    try { await install(await request(target, {controller: controller}), push !== false, false, function () { return pendingNavigation === controller && !controller.signal.aborted; }); }
     catch (error) { if (controller.signal.reason !== 'superseded') toast(navigator.onLine ? error.message === 'Failed to fetch' ? 'Connection failed. Please try again.' : error.name === 'AbortError' ? 'The request timed out. Please try again.' : error.message : 'You are offline. Check your connection.', true); }
     finally { if (pendingNavigation === controller) { pendingNavigation = null; loading(false); } }
   }

@@ -123,6 +123,7 @@
       } else {
         setStatus(el, 'failed');
         toggleBtn(el, '.upload-retry', true);
+        window.CloudApp?.toast(failed?.textContent?.trim() || 'The action could not be completed.', true);
       }
       onDone();
     });
