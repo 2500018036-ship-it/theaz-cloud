@@ -2,7 +2,17 @@
   'use strict';
   var parser = new DOMParser(), pendingNavigation, mutation = Promise.resolve(), busyForms = new WeakSet();
   var direct = /\/(?:download|preview|thumbnail|thumb|avatar|info|text)(?:\/|$)|\/upload\/(?:init|chunk|complete|cancel)$/;
-  function t(text) { return (window.CloudTranslations || {})[document.documentElement.lang || 'en']?.[text] || text; }
+  var reverseTranslations;
+  function t(text) {
+    var catalogs = window.CloudTranslations || {}, locale = document.documentElement.lang || 'en';
+    if (catalogs[locale]?.[text]) return catalogs[locale][text];
+    if (!reverseTranslations) {
+      reverseTranslations = {};
+      Object.keys(catalogs.id || {}).forEach(function (source) { reverseTranslations[catalogs.id[source]] = source; });
+    }
+    var source = reverseTranslations[text];
+    return source ? catalogs[locale]?.[source] || source : text;
+  }
   function token(hash) {
     if (!hash) return;
     document.querySelectorAll('input[name="csrf_test_name"]').forEach(function (input) { input.value = hash; });
@@ -35,12 +45,22 @@
       return {document: parser.parseFromString(html, 'text/html'), url: response.url || target};
     } finally { clearTimeout(timeout); }
   }
-  function install(result, push, languageChange) {
+  async function install(result, push, languageChange) {
     var next = result.document.querySelector('#cloud-shell'), current = document.getElementById('cloud-shell');
     if (!next || !current) throw new Error('The page could not be loaded. Please try again.');
-    var values = [], open = [];
+    // Bootstrap callbacks still reference their instance until the transition ends.
+    await Promise.all(Array.from(current.querySelectorAll('.modal, .offcanvas')).map(function (el) {
+      var instance = window.bootstrap?.Modal.getInstance(el) || window.bootstrap?.Offcanvas.getInstance(el);
+      if (!instance?._isTransitioning && !el.classList.contains('showing') && !el.classList.contains('hiding')) return Promise.resolve();
+      return new Promise(function (resolve) {
+        var timer = setTimeout(done, 500);
+        function done() { clearTimeout(timer); ['shown.bs.modal','hidden.bs.modal','shown.bs.offcanvas','hidden.bs.offcanvas'].forEach(function (event) { el.removeEventListener(event, done); }); resolve(); }
+        ['shown.bs.modal','hidden.bs.modal','shown.bs.offcanvas','hidden.bs.offcanvas'].forEach(function (event) { el.addEventListener(event, done, {once:true}); });
+      });
+    }));
+    var values = [], open = [], preservedModals = [];
     if (languageChange) {
-      document.querySelectorAll('.modal.show').forEach(function (m) { open.push(m.id); });
+      document.querySelectorAll('.modal.show').forEach(function (m) { open.push(m.id); preservedModals.push(m); });
       current.querySelectorAll('input:not([type="hidden"]):not([type="file"]), textarea, select').forEach(function (el) {
         values.push({id: el.id, name: el.name, form: el.form?.getAttribute('action'), value: el.value, checked: el.checked});
       });
@@ -51,6 +71,13 @@
     document.querySelectorAll('.modal-backdrop, .offcanvas-backdrop').forEach(function (el) { el.remove(); });
     document.body.classList.remove('modal-open'); document.body.style.removeProperty('overflow'); document.body.style.removeProperty('padding-right');
     current.replaceWith(next);
+    preservedModals.forEach(function (modal) {
+      var replacement = document.getElementById(modal.id);
+      if (replacement) {
+        modal.classList.remove('show'); modal.style.display = 'none'; modal.removeAttribute('aria-modal'); modal.setAttribute('aria-hidden', 'true');
+        replacement.replaceWith(modal);
+      }
+    });
     document.documentElement.lang = result.document.documentElement.lang || 'en';
     document.title = result.document.title || document.title;
     if (push && result.url !== location.href) history.pushState({cloud: true}, '', result.url);
@@ -69,7 +96,7 @@
   async function navigate(target, push) {
     if (pendingNavigation) pendingNavigation.abort('superseded');
     var controller = new AbortController(); pendingNavigation = controller; loading(true);
-    try { install(await request(target, {controller: controller}), push !== false, false); }
+    try { await install(await request(target, {controller: controller}), push !== false, false); }
     catch (error) { if (controller.signal.reason !== 'superseded') toast(navigator.onLine ? error.message === 'Failed to fetch' ? 'Connection failed. Please try again.' : error.name === 'AbortError' ? 'The request timed out. Please try again.' : error.message : 'You are offline. Check your connection.', true); }
     finally { if (pendingNavigation === controller) { pendingNavigation = null; loading(false); } }
   }
@@ -89,7 +116,7 @@
       var csrf = document.querySelector('input[name="csrf_test_name"]'); if (csrf) data.set(csrf.name, csrf.value);
       if (/\/language\/?$/.test(target.pathname)) data.set('return_to', location.pathname + location.search);
       loading(true);
-      try { install(await request(target, {method: 'POST', body: data, timeout: Array.from(data.values()).some(function (value) { return value instanceof File && value.size > 0; }) ? 600000 : 30000}), true, /\/language\/?$/.test(target.pathname)); }
+      try { await install(await request(target, {method: 'POST', body: data, timeout: Array.from(data.values()).some(function (value) { return value instanceof File && value.size > 0; }) ? 600000 : 30000}), true, /\/language\/?$/.test(target.pathname)); }
       catch (error) { toast(error.name === 'AbortError' ? 'The request timed out. Check the result before trying again.' : error.message, true); }
       finally { formBusy(form, false); busyForms.delete(form); loading(false); }
     });
@@ -101,13 +128,17 @@
     translate(document.getElementById('cloud-shell'));
   }
   function translate(root) {
-    if (!root || document.documentElement.lang !== 'id') return;
+    if (!root) return;
+    root.querySelectorAll?.('[data-i18n-template]').forEach(function (el) { if (el.dataset.i18nTemplate) el.textContent = t(el.dataset.i18nTemplate).replace('{0}', el.dataset.i18nValue || ''); });
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), nodes = [], node;
     while ((node = walker.nextNode())) nodes.push(node);
     nodes.forEach(function (text) {
-      if (text.parentElement?.closest('[data-user-content], script, style, textarea, option[value], .file-name, .drive-item-name')) return;
+      if (text.parentElement?.closest('[data-user-content], [data-i18n-template], script, style, textarea, .file-name, .drive-item-name, .drive-grid-name, .upload-file-name, #details-name, #details-owner, #drive-preview-title, #drive-preview-text')) return;
       var source = text.textContent.trim(), translated = t(source);
       if (translated !== source) text.textContent = text.textContent.replace(source, translated);
+    });
+    root.querySelectorAll?.('[placeholder], [title], [aria-label]').forEach(function (el) {
+      ['placeholder', 'title', 'aria-label'].forEach(function (attr) { if (el.hasAttribute(attr)) el.setAttribute(attr, t(el.getAttribute(attr))); });
     });
   }
   document.addEventListener('click', function (event) {

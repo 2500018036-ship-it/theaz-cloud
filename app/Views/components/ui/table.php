@@ -32,7 +32,7 @@ $emptyMessage = $emptyMessage ?? 'Development placeholder';
             <?php foreach ($rows as $row): ?>
               <tr>
                 <?php foreach ($row as $cell): ?>
-                  <td><?= esc($cell) ?></td>
+                  <td data-user-content><?= esc($cell) ?></td>
                 <?php endforeach; ?>
               </tr>
             <?php endforeach; ?>

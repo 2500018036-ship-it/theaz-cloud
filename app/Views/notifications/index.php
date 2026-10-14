@@ -65,13 +65,13 @@ $formatDate = static function ($value): string {
             <div class="d-flex flex-wrap gap-2 align-items-start justify-content-between">
               <div class="flex-grow-1">
                 <div class="d-flex flex-wrap gap-2 align-items-center">
-                  <h6 class="mb-0"><?= esc($notice['title']) ?></h6>
+                  <h6 data-user-content class="mb-0"><?= esc($notice['title']) ?></h6>
                   <span class="badge bg-light-secondary text-secondary"><?= esc($notice['category']) ?></span>
                   <?php if (empty($notice['read_at'])): ?>
                     <span class="badge bg-light-primary text-primary"><?= esc(lang('UI.t1b9f384c1436')) ?></span>
                   <?php endif; ?>
                 </div>
-                <p class="text-muted mb-1"><?= esc((string) ($notice['body'] ?? '')) ?></p>
+                <p data-user-content class="text-muted mb-1"><?= esc((string) ($notice['body'] ?? '')) ?></p>
                 <span class="text-muted small"><?= esc($formatDate($notice['created_at'] ?? null)) ?></span>
               </div>
               <div class="d-flex gap-2">

@@ -107,7 +107,7 @@ if (session('is_logged_in') && session('user_id')) {
         <li class="dropdown pc-h-item header-user-profile">
           <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" data-bs-auto-close="outside" aria-expanded="false">
             <img src="<?= site_url('settings/avatar') ?>" onerror="this.onerror=null;this.src='<?= esc($defaultAvatar, 'attr') ?>'" alt="user-image" class="user-avtar rounded-circle" style="object-fit:cover">
-            <span><?= esc($displayName) ?></span>
+            <span data-user-content><?= esc($displayName) ?></span>
           </a>
           <div class="dropdown-menu dropdown-user-profile dropdown-menu-end pc-h-dropdown">
             <div class="dropdown-header">
@@ -116,7 +116,7 @@ if (session('is_logged_in') && session('user_id')) {
                   <img src="<?= site_url('settings/avatar') ?>" onerror="this.onerror=null;this.src='<?= esc($defaultAvatar, 'attr') ?>'" alt="user-image" class="user-avtar wid-35 rounded-circle" style="object-fit:cover">
                 </div>
                 <div class="flex-grow-1 ms-3">
-                  <h6 class="mb-1"><?= esc($displayName) ?></h6>
+                  <h6 data-user-content class="mb-1"><?= esc($displayName) ?></h6>
                   <span><?= esc(ucfirst((string) $displayRole)) ?></span>
                 </div>
               </div>

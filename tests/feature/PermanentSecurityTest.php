@@ -44,6 +44,16 @@ final class PermanentSecurityTest extends CIUnitTestCase
         $service->confirm($issued['token']);
     }
 
+    public function testVerificationEmailUsesTheRegisteredSessionLanguage(): void
+    {
+        session()->set('locale', 'id');
+        $id = $this->user('indonesian');
+        $issued = (new EmailVerificationService($this->db))->issue($id, 'indonesian@example.test');
+        $this->assertSame('id', (new UserProfileModel())->find($id)['locale']);
+        $mail = $this->db->table('email_queue')->select('subject')->where('id', $issued['queue_id'])->get()->getRowArray();
+        $this->assertSame(lang('App.email.verifySubject', [], 'id'), $mail['subject']);
+    }
+
     public function testExpiredTokenCannotActivateAccount(): void
     {
         $id = $this->user('expiredtoken'); $service = new EmailVerificationService($this->db);

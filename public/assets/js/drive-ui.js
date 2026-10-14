@@ -312,7 +312,7 @@
       form.action = button.dataset.action || '';
     }
     if (title) {
-      title.textContent = button.dataset.title || 'Move';
+      title.textContent = t(button.dataset.title || 'Move');
     }
   }
 
@@ -326,13 +326,15 @@
       form.action = button.dataset.action || '';
     }
     if (title) {
-      title.textContent = button.dataset.title || 'Confirm';
+      title.textContent = t(button.dataset.title || 'Confirm');
     }
     if (message) {
-      message.textContent = button.dataset.message || 'Continue?';
+      message.dataset.i18nTemplate = button.dataset.messageTemplate || '';
+      message.dataset.i18nValue = button.dataset.messageName || '';
+      message.textContent = button.dataset.messageTemplate ? t(button.dataset.messageTemplate).replace('{0}', button.dataset.messageName || '') : t(button.dataset.message || 'Continue?');
     }
     if (submit) {
-      submit.textContent = button.dataset.submitLabel || 'Confirm';
+      submit.textContent = t(button.dataset.submitLabel || 'Confirm');
       submit.className = 'btn ' + (button.dataset.submitClass || 'btn-danger');
     }
   }

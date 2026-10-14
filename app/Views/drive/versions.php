@@ -45,7 +45,7 @@ $fileIcon = \App\Libraries\FileIcon::forItem($item);
             <i class="<?= esc($fileIcon) ?> f-22"></i>
           </div>
           <div class="min-w-0">
-            <h6 class="mb-1 text-break"><?= esc((string) ($item['name'] ?? 'File')) ?></h6>
+            <h6 data-user-content class="mb-1 text-break"><?= esc((string) ($item['name'] ?? 'File')) ?></h6>
             <p class="text-muted mb-1"><?= esc($formatBytes((int) ($item['size_bytes'] ?? 0))) ?></p>
             <p class="text-muted mb-0"><?= esc((string) ($item['mime_type'] ?? '-')) ?></p>
           </div>

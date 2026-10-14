@@ -16,7 +16,7 @@ $checked = static fn (array $data, string $key): string => (int) ($data[$key] ??
     <div class="card">
       <div class="card-body text-center">
         <img src="<?= site_url('settings/avatar') ?>" onerror="this.onerror=null;this.src='<?= esc($defaultAvatar, 'attr') ?>'" alt="Avatar" class="rounded-circle mb-3" width="96" height="96" style="object-fit:cover">
-        <h5 class="mb-1"><?= esc((string) (($profile['display_name'] ?? '') !== '' ? $profile['display_name'] : ($user['username'] ?? 'Account'))) ?></h5>
+        <h5 data-user-content class="mb-1"><?= esc((string) (($profile['display_name'] ?? '') !== '' ? $profile['display_name'] : ($user['username'] ?? 'Account'))) ?></h5>
         <p class="text-muted mb-3"><?= esc((string) ($user['email'] ?? '')) ?></p>
         <form action="<?= site_url('settings/avatar') ?>" method="post" enctype="multipart/form-data" class="vstack gap-2">
           <?= csrf_field() ?>

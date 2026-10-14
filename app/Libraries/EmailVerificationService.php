@@ -205,7 +205,8 @@ class EmailVerificationService
             return $profile;
         }
 
-        $this->profiles->insert(['user_id' => $userId]);
+        $locale = (string) (session('locale') ?? 'en');
+        $this->profiles->insert(['user_id' => $userId, 'locale' => in_array($locale, ['en', 'id'], true) ? $locale : 'en']);
 
         return $this->profiles->find($userId) ?? ['user_id' => $userId];
     }

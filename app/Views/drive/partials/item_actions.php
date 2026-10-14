@@ -68,13 +68,13 @@ $detailsAttributes = sprintf(
         </button>
       </li>
       <li>
-        <button type="button" class="dropdown-item text-success" data-bs-toggle="modal" data-bs-target="#confirm-modal" data-drive-confirm data-action="<?= site_url('drive/items/' . $itemId . '/restore') ?>" data-title="<?= esc(lang('UI.t49abac3764b4'), 'attr') ?>" data-message="Restore <?= esc($itemName, 'attr') ?> to My Drive?" data-submit-label="Restore" data-submit-class="btn-success">
+        <button type="button" class="dropdown-item text-success" data-bs-toggle="modal" data-bs-target="#confirm-modal" data-drive-confirm data-action="<?= site_url('drive/items/' . $itemId . '/restore') ?>" data-title="<?= esc(lang('UI.t49abac3764b4'), 'attr') ?>" data-message="<?= esc(lang('App.confirm.restore', [$itemName]), 'attr') ?>" data-message-template="<?= esc(lang('App.confirm.restore', [], 'en'), 'attr') ?>" data-message-name="<?= esc($itemName, 'attr') ?>" data-submit-label="Restore" data-submit-class="btn-success">
           <i class="ti ti-rotate-clockwise me-2"></i><?= esc(lang('UI.ta76e13b98392')) ?>
         </button>
       </li>
       <li><hr class="dropdown-divider"></li>
       <li>
-        <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#confirm-modal" data-drive-confirm data-action="<?= site_url('drive/items/' . $itemId . '/destroy') ?>" data-title="<?= esc(lang('UI.t280b10c89cc4'), 'attr') ?>" data-message="Permanently delete <?= esc($itemName, 'attr') ?>? This cannot be undone." data-submit-label="Delete permanently" data-submit-class="btn-danger">
+        <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#confirm-modal" data-drive-confirm data-action="<?= site_url('drive/items/' . $itemId . '/destroy') ?>" data-title="<?= esc(lang('UI.t280b10c89cc4'), 'attr') ?>" data-message="<?= esc(lang('App.confirm.destroy', [$itemName]), 'attr') ?>" data-message-template="<?= esc(lang('App.confirm.destroy', [], 'en'), 'attr') ?>" data-message-name="<?= esc($itemName, 'attr') ?>" data-submit-label="Delete permanently" data-submit-class="btn-danger">
           <i class="ti ti-trash-x me-2"></i><?= esc(lang('UI.t280b10c89cc4')) ?>
         </button>
       </li>
@@ -154,7 +154,7 @@ $detailsAttributes = sprintf(
       <?php if ($canEdit): ?>
         <li><hr class="dropdown-divider"></li>
         <li>
-          <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#confirm-modal" data-drive-confirm data-action="<?= site_url('drive/items/' . $itemId . '/delete') ?>" data-title="<?= esc(lang('UI.tb250a454877d'), 'attr') ?>" data-message="Move <?= esc($itemName, 'attr') ?> to Trash?" data-submit-label="Move to trash" data-submit-class="btn-danger">
+          <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#confirm-modal" data-drive-confirm data-action="<?= site_url('drive/items/' . $itemId . '/delete') ?>" data-title="<?= esc(lang('UI.tb250a454877d'), 'attr') ?>" data-message="<?= esc(lang('App.confirm.trash', [$itemName]), 'attr') ?>" data-message-template="<?= esc(lang('App.confirm.trash', [], 'en'), 'attr') ?>" data-message-name="<?= esc($itemName, 'attr') ?>" data-submit-label="Move to trash" data-submit-class="btn-danger">
             <i class="ti ti-trash me-2"></i><?= esc(lang('UI.tc560122ac470')) ?>
           </button>
         </li>

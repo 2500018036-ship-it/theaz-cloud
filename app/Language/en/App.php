@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'confirm' => [
+        'trash' => 'Move {0} to Trash?',
+        'restore' => 'Restore {0} to My Drive?',
+        'destroy' => 'Permanently delete {0}? This cannot be undone.',
+    ],
     'menu' => [
         'administration' => 'Administration',
         'workspace' => 'Workspace',

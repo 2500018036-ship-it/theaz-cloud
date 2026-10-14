@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'confirm' => [
+        'trash' => 'Pindahkan {0} ke Sampah?',
+        'restore' => 'Pulihkan {0} ke Drive Saya?',
+        'destroy' => 'Hapus permanen {0}? Tindakan ini tidak dapat dibatalkan.',
+    ],
     'menu' => [
         'administration' => 'Administrasi',
         'workspace' => 'Ruang Kerja',
