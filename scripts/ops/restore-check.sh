@@ -10,6 +10,16 @@ container=cloud-storage-restore-check-$(date -u +%s)
 password=$(openssl rand -hex 32)
 printf 'MARIADB_ROOT_PASSWORD=%s\nMARIADB_DATABASE=restore_check\n' "$password" > "$scratch/restore.env"
 unset password
+python3 - "$backup/production.env" "$scratch/restore.env" <<'PY'
+import pathlib,re,secrets,sys
+source=pathlib.Path(sys.argv[1]).read_text()
+match=re.search(r'^MARIADB_USER=(.*)$',source,re.M)
+user=match.group(1).strip().strip('\"\'') if match else 'cloud_storage'
+if not re.fullmatch(r'[A-Za-z0-9_]+',user): raise SystemExit('Unsupported application database account name.')
+# Recreate the dump's DEFINER account with a fresh isolated password, never production credentials.
+with pathlib.Path(sys.argv[2]).open('a') as target:
+ target.write('MARIADB_USER='+user+'\nMARIADB_PASSWORD='+secrets.token_hex(32)+'\n')
+PY
 docker run -d --name "$container" --network none --env-file "$scratch/restore.env" -v "$scratch/database:/var/lib/mysql" mariadb:11.4 >/dev/null
 trap 'docker stop "$container" >/dev/null' EXIT
 ready=0
