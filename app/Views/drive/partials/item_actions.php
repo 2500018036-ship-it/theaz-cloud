@@ -94,6 +94,13 @@ $detailsAttributes = sprintf(
         </li>
       <?php endif; ?>
       <?php if ($itemType === 'file'): ?>
+        <?php if (strtolower($itemExtension) === 'zip'): ?>
+          <li>
+            <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#extract-modal" data-drive-extract data-action="<?= site_url('drive/items/' . $itemId . '/extract') ?>" data-name="<?= esc($itemName, 'attr') ?>">
+              <i class="ti ti-file-zip me-2"></i><?= esc(lang('App.transfers.extractZip')) ?>
+            </button>
+          </li>
+        <?php endif; ?>
         <li>
           <a class="dropdown-item" href="<?= site_url('drive/items/' . $itemId . '/download') ?>">
             <i class="ti ti-download me-2"></i><?= esc(lang('UI.td6eafe823591')) ?>

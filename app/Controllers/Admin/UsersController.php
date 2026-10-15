@@ -55,6 +55,7 @@ class UsersController extends BaseController
                 ],
                 'currentUser' => $this->currentUser(),
                 'detail'      => $this->admin->userDetail($id),
+                'maxQuotaBytes' => (new SystemSettingsService())->getInt('max_admin_assignable_quota_bytes', 128_849_018_880),
             ]);
         } catch (\Throwable $exception) {
             return redirect()->to('/admin/users')->with('error', $exception->getMessage());
@@ -122,24 +123,24 @@ class UsersController extends BaseController
 
     private function quotaBytesFromPost(): int
     {
-        $value = (float) $this->request->getPost('quota_value');
+        $rawValue = $this->request->getPost('quota_value');
+        if (! is_scalar($rawValue) || ! is_numeric($rawValue)) {
+            throw new \DomainException('Quota must be a valid number.');
+        }
+        $value = (float) $rawValue;
         $unit = strtolower((string) $this->request->getPost('quota_unit'));
         $multiplier = match ($unit) {
             'mb' => 1048576,
             'tb' => 1099511627776,
-            default => 1073741824,
+            'gb' => 1073741824,
+            default => throw new \DomainException('Quota unit is invalid.'),
         };
 
-        if ($value < 0) {
+        if (! is_finite($value) || $value < 0 || $value * $multiplier > PHP_INT_MAX) {
             throw new \DomainException('Quota must be positive.');
         }
 
         $bytes = (int) round($value * $multiplier);
-        $max = (new SystemSettingsService())->getInt('max_admin_assignable_quota_bytes', 10_737_418_240);
-        if ($bytes > $max) {
-            throw new \DomainException('Quota exceeds the allowed policy.');
-        }
-
         return $bytes;
     }
 

@@ -81,7 +81,7 @@ $bytesToGb = static fn ($bytes): string => $bytes === null || $bytes === '' ? ''
             </div>
             <div class="col-md-4">
               <label class="form-label" for="max-admin-quota"><?= esc(lang('UI.t26ca942fdc0a')) ?></label>
-              <input type="number" class="form-control" id="max-admin-quota" name="max_admin_assignable_quota_bytes" min="1048576" value="<?= esc($settings['max_admin_assignable_quota_bytes'] ?? '10737418240') ?>">
+              <input type="number" class="form-control" id="max-admin-quota" name="max_admin_assignable_quota_bytes" min="1048576" value="<?= esc($settings['max_admin_assignable_quota_bytes'] ?? '128849018880') ?>">
             </div>
           </div>
         </div>
@@ -93,7 +93,7 @@ $bytesToGb = static fn ($bytes): string => $bytes === null || $bytes === '' ? ''
           <div class="row g-3">
             <div class="col-md-4">
               <label class="form-label" for="max-upload-size"><?= esc(lang('UI.t589d4adfef3c')) ?></label>
-              <input type="number" class="form-control" id="max-upload-size" name="max_upload_size_bytes" min="1024" value="<?= esc($settings['max_upload_size_bytes'] ?? '104857600') ?>">
+              <input type="number" class="form-control" id="max-upload-size" name="max_upload_size_bytes" min="1024" max="128849018880" value="<?= esc($settings['max_upload_size_bytes'] ?? '128849018880') ?>">
               <div class="form-text"><?= esc(lang('UI.t179d78c24ab9')) ?></div>
             </div>
             <div class="col-md-4">

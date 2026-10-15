@@ -11,6 +11,21 @@
   }
 
   var parser = new DOMParser();
+  var galleryLinks = [], galleryIndex = -1, previewRequest = 0;
+
+  function galleryControls() {
+    var previous = document.getElementById('gallery-previous'), next = document.getElementById('gallery-next'), counter = document.getElementById('gallery-counter');
+    [previous, next, counter].forEach(function (element) { element?.classList.toggle('d-none', galleryIndex < 0); });
+    if (previous) previous.disabled = galleryIndex <= 0;
+    if (next) next.disabled = galleryIndex >= galleryLinks.length - 1;
+    if (counter) counter.textContent = (galleryIndex + 1) + ' / ' + galleryLinks.length;
+  }
+
+  function changePhoto(direction) {
+    var index = galleryIndex + direction;
+    if (galleryIndex < 0 || index < 0 || index >= galleryLinks.length) return;
+    galleryIndex = index; openDrivePreview(galleryLinks[index], true);
+  }
 
   function toArray(list) {
     return Array.prototype.slice.call(list || []);
@@ -519,7 +534,14 @@
     if (unsupported) unsupported.classList.remove('d-none');
   }
 
-  function openDrivePreview(link) {
+  function openDrivePreview(link, keepGallery) {
+    if (!keepGallery) {
+      var gallery = link.closest('[data-drive-gallery]');
+      galleryLinks = gallery ? toArray(gallery.querySelectorAll('[data-drive-preview]')) : [];
+      galleryIndex = galleryLinks.indexOf(link);
+    }
+    galleryControls();
+    var requestId = ++previewRequest;
     var modalElement = document.getElementById('drive-preview-modal');
     var infoUrl = previewInfoUrl(link.href);
 
@@ -539,7 +561,7 @@
     if (download) download.classList.add('d-none');
 
     if (window.bootstrap) {
-      new bootstrap.Modal(modalElement).show();
+      bootstrap.Modal.getOrCreateInstance(modalElement).show();
     }
 
     timedFetch(infoUrl.toString(), {
@@ -548,6 +570,7 @@
     })
       .then(function (response) { return response.json(); })
       .then(function (payload) {
+        if (requestId !== previewRequest) return;
         if (!payload.success) {
           showPreviewError(payload.error || 'Preview could not be loaded.');
           return;
@@ -556,6 +579,7 @@
         renderPreview(payload.item || {});
       })
       .catch(function () {
+        if (requestId !== previewRequest) return;
         showPreviewError('Preview could not be loaded.');
       });
   }
@@ -698,6 +722,8 @@
   }
 
   document.addEventListener('click', function (event) {
+    if (event.target.closest('#gallery-previous')) { changePhoto(-1); return; }
+    if (event.target.closest('#gallery-next')) { changePhoto(1); return; }
     var renameButton = event.target.closest('[data-drive-rename]');
     if (renameButton) {
       fillRenameModal(renameButton);
@@ -817,7 +843,12 @@
 
   document.addEventListener('hidden.bs.modal', function (event) {
     if (event.target && event.target.id === 'drive-preview-modal') {
+      previewRequest++; galleryLinks = []; galleryIndex = -1; galleryControls();
       clearPreviewModal();
     }
+  });
+  document.addEventListener('keydown', function (event) {
+    if (galleryIndex < 0 || !document.getElementById('drive-preview-modal')?.classList.contains('show') || event.target.closest('input, textarea, select')) return;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); changePhoto(event.key === 'ArrowLeft' ? -1 : 1); }
   });
 })();

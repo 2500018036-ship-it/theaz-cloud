@@ -238,7 +238,7 @@ class InvitationsController extends BaseController
             default => 1073741824,
         };
         $bytes = (int) round($value * $multiplier);
-        $max = (new SystemSettingsService())->getInt('max_admin_assignable_quota_bytes', 10_737_418_240);
+        $max = (new SystemSettingsService())->getInt('max_admin_assignable_quota_bytes', 128_849_018_880);
 
         if ($bytes > $max) {
             throw new \DomainException('Invitation quota exceeds the allowed policy.');

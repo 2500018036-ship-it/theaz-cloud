@@ -132,6 +132,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
         <div class="btn-group" role="group" aria-label="<?= esc(lang('UI.t18997f2413b5'), 'attr') ?>">
           <a class="btn btn-light<?= $viewMode === 'list' ? ' active' : '' ?>" href="<?= esc($urlWith(['view' => 'list'])) ?>"><i class="ti ti-list"></i></a>
           <a class="btn btn-light<?= $viewMode === 'grid' ? ' active' : '' ?>" href="<?= esc($urlWith(['view' => 'grid'])) ?>"><i class="ti ti-layout-grid"></i></a>
+          <a class="btn btn-light<?= $viewMode === 'gallery' ? ' active' : '' ?>" href="<?= esc($urlWith(['view' => 'gallery', 'page' => 1])) ?>" title="<?= esc(lang('App.transfers.gallery'), 'attr') ?>"><i class="ti ti-photo"></i> <?= esc(lang('App.transfers.gallery')) ?></a>
         </div>
       </div>
     </div>
@@ -216,9 +217,12 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
           </button>
         </div>
       <?php endif; ?>
+    <?php elseif ($viewMode === 'gallery'): ?>
+      <?= view('drive/partials/gallery', ['items' => $items, 'section' => $section, 'folderId' => $folderId]) ?>
     <?php elseif ($viewMode === 'grid'): ?>
       <?= view('components/app/bulk_toolbar', ['id' => 'drive-bulk', 'action' => site_url('drive/bulk'), 'hidden' => ['parent_id' => $folderId, 'context' => $section],
-          'options' => $section === 'trash' ? ['restore' => lang('UI.ta76e13b98392'), 'destroy' => lang('UI.t280b10c89cc4')] : ['delete' => lang('UI.tb250a454877d'), 'star' => lang('App.actions.star'), 'unstar' => lang('App.actions.unstar')]]) ?>
+          'downloadAction' => $section !== 'trash' ? site_url('drive/bulk-download') : null,
+          'options' => $section === 'trash' ? ['restore' => lang('UI.ta76e13b98392'), 'destroy' => lang('UI.t280b10c89cc4')] : ['download' => lang('App.transfers.downloadZip'), 'delete' => lang('UI.tb250a454877d'), 'star' => lang('App.actions.star'), 'unstar' => lang('App.actions.unstar')]]) ?>
       <div class="row g-3">
         <?php foreach ($items as $item): ?>
           <div class="col-sm-6 col-xl-3">
@@ -226,7 +230,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
               <div class="card-body">
                 <div class="d-flex align-items-start justify-content-between mb-3">
                   <div class="d-flex align-items-center gap-2">
-                    <input class="form-check-input" type="checkbox" id="drive-select-<?= (int) $item['id'] ?>" data-select-item data-select-actions="<?= ($item['access_role'] ?? 'owner') === 'owner' ? 'delete star unstar restore destroy' : '' ?>" form="drive-bulk" name="selected[]" value="<?= (int) $item['id'] ?>" aria-label="<?= esc(lang('App.actions.select'), 'attr') ?>">
+                    <input class="form-check-input" type="checkbox" id="drive-select-<?= (int) $item['id'] ?>" data-select-item data-select-actions="<?= ($item['access_role'] ?? 'owner') === 'owner' ? 'download delete star unstar restore destroy' : 'download' ?>" form="drive-bulk" name="selected[]" value="<?= (int) $item['id'] ?>" aria-label="<?= esc(lang('App.actions.select'), 'attr') ?>">
                     <span class="badge bg-light-secondary text-secondary"><?= esc($item['type']) ?></span>
                     <?php if (($item['access_role'] ?? 'owner') !== 'owner'): ?>
                       <span class="badge bg-light-info text-info"><?= esc(ucfirst((string) $item['access_role'])) ?></span>
@@ -245,8 +249,10 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
                       'ownerLabel' => (string) ($item['owner_label'] ?? $ownerLabel),
                   ]) ?>
                 </div>
-                <a class="d-inline-flex avtar bg-light-primary text-primary mb-3 text-decoration-none" href="<?= esc($itemHref($item)) ?>"<?= $item['type'] === 'file' && $isPreviewable($item) ? ' data-drive-preview' : '' ?>>
-                  <i class="<?= esc($iconFor($item)) ?> f-22"></i>
+                <a class="<?= str_starts_with((string) ($item['mime_type'] ?? ''), 'image/') ? 'drive-grid-photo' : 'd-inline-flex avtar bg-light-primary text-primary' ?> mb-3 text-decoration-none" href="<?= esc($itemHref($item)) ?>"<?= $item['type'] === 'file' && $isPreviewable($item) ? ' data-drive-preview' : '' ?>>
+                  <?php if (str_starts_with((string) ($item['mime_type'] ?? ''), 'image/') && $section !== 'trash'): ?>
+                    <img src="<?= site_url('drive/items/' . (int) $item['id'] . '/thumb') ?>" alt="<?= esc($item['name'], 'attr') ?>" loading="lazy">
+                  <?php else: ?><i class="<?= esc($iconFor($item)) ?> f-22"></i><?php endif; ?>
                 </a>
                 <h6 class="drive-grid-name text-truncate mb-1">
                   <a class="fw-semibold" href="<?= esc($itemHref($item)) ?>"<?= $item['type'] === 'file' && $isPreviewable($item) ? ' data-drive-preview' : '' ?>>
@@ -264,7 +270,8 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
       </div>
     <?php else: ?>
       <?= view('components/app/bulk_toolbar', ['id' => 'drive-bulk', 'action' => site_url('drive/bulk'), 'hidden' => ['parent_id' => $folderId, 'context' => $section],
-          'options' => $section === 'trash' ? ['restore' => lang('UI.ta76e13b98392'), 'destroy' => lang('UI.t280b10c89cc4')] : ['delete' => lang('UI.tb250a454877d'), 'star' => lang('App.actions.star'), 'unstar' => lang('App.actions.unstar')]]) ?>
+          'downloadAction' => $section !== 'trash' ? site_url('drive/bulk-download') : null,
+          'options' => $section === 'trash' ? ['restore' => lang('UI.ta76e13b98392'), 'destroy' => lang('UI.t280b10c89cc4')] : ['download' => lang('App.transfers.downloadZip'), 'delete' => lang('UI.tb250a454877d'), 'star' => lang('App.actions.star'), 'unstar' => lang('App.actions.unstar')]]) ?>
       <div class="table-responsive">
       <table class="table align-middle mb-0">
           <thead>
@@ -281,7 +288,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
           <tbody>
             <?php foreach ($items as $item): ?>
               <tr>
-                <td><input class="form-check-input" type="checkbox" id="drive-select-<?= (int) $item['id'] ?>" data-select-item data-select-actions="<?= ($item['access_role'] ?? 'owner') === 'owner' ? 'delete star unstar restore destroy' : '' ?>" form="drive-bulk" name="selected[]" value="<?= (int) $item['id'] ?>" aria-label="<?= esc(lang('App.actions.select'), 'attr') ?>"></td>
+                <td><input class="form-check-input" type="checkbox" id="drive-select-<?= (int) $item['id'] ?>" data-select-item data-select-actions="<?= ($item['access_role'] ?? 'owner') === 'owner' ? 'download delete star unstar restore destroy' : 'download' ?>" form="drive-bulk" name="selected[]" value="<?= (int) $item['id'] ?>" aria-label="<?= esc(lang('App.actions.select'), 'attr') ?>"></td>
                 <td>
                   <div class="d-flex align-items-center gap-2">
                     <a class="avtar avtar-xs bg-light-primary text-primary text-decoration-none" href="<?= esc($itemHref($item)) ?>"<?= $item['type'] === 'file' && $isPreviewable($item) ? ' data-drive-preview' : '' ?>>
@@ -366,7 +373,7 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
 
 <div class="modal fade" id="upload-modal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
-    <form action="<?= site_url('drive/upload') ?>" method="post" enctype="multipart/form-data" class="modal-content" id="upload-form">
+    <form action="<?= site_url('drive/upload') ?>" method="post" enctype="multipart/form-data" class="modal-content" id="upload-form" data-chunk-size="<?= (int) config(\Config\CloudDrive::class)->chunkSizeBytes ?>" data-auto-zip-threshold="<?= (int) config(\Config\CloudDrive::class)->autoZipThreshold ?>">
       <?= csrf_field() ?>
       <input type="hidden" name="parent_id" value="<?= esc((string) $folderId) ?>">
       <input type="hidden" name="context" value="<?= esc($section) ?>">
@@ -391,11 +398,44 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
         <label class="form-label" for="drive-files"><?= esc(lang('UI.tabc7e9892806')) ?></label>
         <input type="file" class="form-control" id="drive-files" name="files[]" multiple required>
         <div class="form-text"><?= esc(lang('UI.tf1d4bcf974b8')) ?></div>
+        <div class="form-text"><?= esc(lang('App.transfers.uploadHint')) ?></div>
+        <div class="form-text"><?= esc(lang('App.transfers.autoZipHint', [config(\Config\CloudDrive::class)->autoZipThreshold])) ?></div>
         <div id="upload-file-list" class="mt-3 d-none"></div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i><?= esc(lang('UI.t19766ed6ccb2')) ?></button>
         <button type="submit" class="btn btn-primary" id="upload-submit"><i class="ti ti-upload me-1"></i><?= esc(lang('UI.t865e89de78d9')) ?></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal fade" id="extract-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="post" class="modal-content" id="extract-form">
+      <?= csrf_field() ?>
+      <input type="hidden" name="parent_id" value="<?= esc((string) $folderId) ?>">
+      <input type="hidden" name="context" value="<?= esc($section) ?>">
+      <div class="modal-header">
+        <h5 class="modal-title"><?= esc(lang('App.transfers.extractZip')) ?></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= esc(lang('UI.t7d9eb7acb13e'), 'attr') ?>"></button>
+      </div>
+      <div class="modal-body">
+        <?php if ($activeModal === 'extract-modal' && $modalError !== ''): ?>
+          <div class="alert alert-danger"><?= esc($modalError) ?></div>
+        <?php endif; ?>
+        <p id="extract-file-name" class="fw-semibold text-break" data-user-content></p>
+        <p class="text-muted small"><?= esc(lang('App.transfers.extractHint')) ?></p>
+        <label class="form-label" for="extract-folder"><?= esc(lang('UI.t74ccd4330384')) ?></label>
+        <select class="form-select" id="extract-folder" name="target_folder_id">
+          <?php foreach ($folderOptions as $option): ?>
+            <option value="<?= esc((string) $option['id']) ?>" <?= (string) $option['id'] === (string) $folderId ? 'selected' : '' ?>><?= esc($option['label']) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal"><?= esc(lang('UI.t19766ed6ccb2')) ?></button>
+        <button type="submit" class="btn btn-primary"><i class="ti ti-file-zip me-1"></i><?= esc(lang('App.transfers.extract')) ?></button>
       </div>
     </form>
   </div>
@@ -531,6 +571,9 @@ $urlWith = static function (array $overrides = []) use ($basePath, $folderId, $s
           <div class="text-muted small text-truncate" id="drive-preview-meta"></div>
         </div>
         <div class="d-flex align-items-center gap-2 ms-auto">
+          <button type="button" id="gallery-previous" class="btn btn-sm btn-light-secondary d-none" aria-label="<?= esc(lang('App.transfers.previousPhoto'), 'attr') ?>"><i class="ti ti-chevron-left"></i></button>
+          <span id="gallery-counter" class="small text-muted d-none"></span>
+          <button type="button" id="gallery-next" class="btn btn-sm btn-light-secondary d-none" aria-label="<?= esc(lang('App.transfers.nextPhoto'), 'attr') ?>"><i class="ti ti-chevron-right"></i></button>
           <a class="btn btn-sm btn-light-primary d-none" id="drive-preview-download" href="#"><i class="ti ti-download"></i></a>
           <button type="button" class="btn-close ms-1" data-bs-dismiss="modal" aria-label="<?= esc(lang('UI.t7d9eb7acb13e'), 'attr') ?>"></button>
         </div>

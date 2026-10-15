@@ -86,6 +86,22 @@ final class Phase09SecurityRoleSettingsTest extends CIUnitTestCase
         $this->assertTrue($authorization->hasPermission($superAdminId, 'system_settings.manage'));
     }
 
+    public function testUploadLimitAllowsOneHundredTwentyGbAndCapsLargerSettings(): void
+    {
+        $superAdminId = $this->createUser('uploadlimitsuper', 'super_admin');
+        $settings = new SystemSettingsService($this->db);
+
+        $settings->updateGeneral($superAdminId, ['max_upload_size_bytes' => '128849018880']);
+        $this->assertSame(128_849_018_880, $settings->getInt('max_upload_size_bytes'));
+        $this->seeInDatabase('system_settings', [
+            'setting_key' => 'max_upload_size_bytes',
+            'value_text' => '128849018880',
+        ]);
+
+        $settings->updateGeneral($superAdminId, ['max_upload_size_bytes' => '128849018881']);
+        $this->assertSame(128_849_018_880, $settings->getInt('max_upload_size_bytes'));
+    }
+
     private function postAuthController(string $method, array $post): \CodeIgniter\Test\TestResponse
     {
         $request = service('incomingrequest', null, false);

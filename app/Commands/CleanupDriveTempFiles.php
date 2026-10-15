@@ -31,6 +31,8 @@ class CleanupDriveTempFiles extends BaseCommand
             return EXIT_ERROR;
         }
 
+        (new \App\Libraries\BatchUploadService())->cleanupExpired();
+        (new \App\Libraries\ChunkedUploadService())->cleanupExpiredChunks();
         $deleted = (new DriveService())->cleanupExpiredTempFiles($maxAgeSeconds);
         CLI::write('Expired temporary files deleted: ' . $deleted, 'green');
 

@@ -30,25 +30,25 @@ class ChunkedUploadService
      *
      * @return array{upload_id: string, chunk_size: int, total_chunks: int}
      */
-    public function initUpload(int $userId, ?int $parentId, string $fileName, int $fileSize, ?string $mimeType = null): array
+    public function initUpload(int $userId, ?int $parentId, string $fileName, int $fileSize, ?string $mimeType = null, ?string $batchId = null): array
     {
-        if ($fileSize <= 0) {
+        if ($fileSize < 0 || ($fileSize === 0 && $batchId === null)) {
             throw new \DomainException('File size must be positive.');
         }
 
-        if ($fileSize > $this->config->maxUploadSizeBytes) {
+        if ($fileSize > $this->drive->uploadSizeLimit()) {
             throw new \DomainException('File exceeds the maximum upload size.');
         }
 
         // Check user quota before starting
-        $storage = $this->drive->userStorageSummary($userId);
+        $storage = $this->drive->uploadDestination($userId, $parentId);
         if ($fileSize > $storage['available']) {
             throw new \DomainException('Not enough storage quota.');
         }
 
         $uploadId    = bin2hex(random_bytes(32));
         $chunkSize   = $this->config->chunkSizeBytes;
-        $totalChunks = (int) ceil($fileSize / $chunkSize);
+        $totalChunks = max(1, (int) ceil($fileSize / $chunkSize));
         $storagePath = 'tmp/chunks/' . $uploadId;
 
         $absDir = $this->absolutePath($storagePath);
@@ -62,6 +62,7 @@ class ChunkedUploadService
             'user_id'         => $userId,
             'parent_id'       => $parentId,
             'upload_id'       => $uploadId,
+            'batch_id'        => $batchId,
             'file_name'       => $fileName,
             'file_size'       => $fileSize,
             'mime_type'       => $mimeType ?: null,
@@ -98,6 +99,11 @@ class ChunkedUploadService
 
         if ($chunkIndex < 0 || $chunkIndex >= $totalChunks) {
             throw new \DomainException('Chunk index out of range.');
+        }
+
+        $expected = min((int) $session['chunk_size'], (int) $session['file_size'] - $chunkIndex * (int) $session['chunk_size']);
+        if (! is_file($chunkTmpPath) || filesize($chunkTmpPath) !== $expected) {
+            throw new \DomainException('Chunk size does not match the upload.');
         }
 
         $received = json_decode($session['received_chunks'] ?: '[]', true);
@@ -143,7 +149,25 @@ class ChunkedUploadService
      */
     public function completeUpload(int $userId, string $uploadId): array
     {
+        return $this->finishUpload($userId, $uploadId, null);
+    }
+
+    public function stageUpload(int $userId, string $uploadId, string $batchId): array
+    {
+        return $this->finishUpload($userId, $uploadId, $batchId);
+    }
+
+    private function finishUpload(int $userId, string $uploadId, ?string $batchId): array
+    {
         $session = $this->findSession($userId, $uploadId);
+
+        if (($session['batch_id'] ?? null) !== $batchId) {
+            throw new \DomainException('Upload session does not belong to this batch.');
+        }
+        $stagedPath = $this->drive->storageRoot() . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR . $uploadId . '_assembled';
+        if ($batchId !== null && $session['status'] === 'staged' && is_file($stagedPath)) {
+            return ['upload_id' => $uploadId, 'staged' => true];
+        }
 
         if ($session['status'] !== 'pending') {
             throw new \DomainException('Upload session is not active.');
@@ -194,6 +218,18 @@ class ChunkedUploadService
             }
 
             fclose($out);
+
+            if (filesize($assembledPath) !== (int) $session['file_size']) {
+                throw new \DomainException('Uploaded size does not match the file.');
+            }
+            if ($batchId !== null) {
+                $this->drive->validateUploadSource($session['file_name'], $assembledPath);
+                $this->db->table('chunked_uploads')->where('upload_id', $uploadId)
+                    ->update(['status' => 'staged', 'updated_at' => Time::now()->toDateTimeString()]);
+                $this->deleteChunkFiles($session, false);
+
+                return ['upload_id' => $uploadId, 'staged' => true];
+            }
 
             // Import via DriveService (deleteSource=true so assembled file is cleaned up)
             $parentId = $session['parent_id'] === null ? null : (int) $session['parent_id'];
@@ -298,13 +334,9 @@ class ChunkedUploadService
         return $this->drive->storageRoot() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
     }
 
-    private function deleteChunkFiles(array $session): void
+    private function deleteChunkFiles(array $session, bool $removeAssembled = true): void
     {
         $dir = $this->absolutePath($session['storage_path']);
-        if (! is_dir($dir)) {
-            return;
-        }
-
         $files = glob($dir . DIRECTORY_SEPARATOR . '*.part');
         if (is_array($files)) {
             foreach ($files as $file) {
@@ -314,7 +346,7 @@ class ChunkedUploadService
 
         // Also remove the assembled temp file if it exists
         $assembled = $this->drive->storageRoot() . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR . $session['upload_id'] . '_assembled';
-        if (is_file($assembled)) {
+        if ($removeAssembled && is_file($assembled)) {
             @unlink($assembled);
         }
 

@@ -140,13 +140,28 @@ class DriveController extends BaseController
         }
     }
 
-    public function upload(): RedirectResponse
+    public function upload(): RedirectResponse|ResponseInterface
     {
         $folderId = $this->nullableInt($this->request->getPost('parent_id'));
         $context = $this->driveContext();
         $files = $this->request->getFileMultiple('files') ?? [];
         $created = 0;
         $errors = [];
+
+        if (count($files) > config(\Config\CloudDrive::class)->autoZipThreshold) {
+            try {
+                $item = (new \App\Libraries\BatchUploadService())->storeMultipart($this->currentUserId(), $folderId, $files);
+                if (str_contains($this->request->getHeaderLine('Accept'), 'application/json')) {
+                    return $this->jsonResponse(['success' => true, 'created' => 1, 'item' => $item]);
+                }
+
+                return $this->redirectToFolder($folderId, $context)->with('message', '1 file(s) uploaded.');
+            } catch (\Throwable $exception) {
+                if (str_contains($this->request->getHeaderLine('Accept'), 'application/json')) return $this->jsonError($exception->getMessage());
+
+                return $this->redirectToFolder($folderId, $context)->with('error', $exception->getMessage());
+            }
+        }
 
         foreach ($files as $file) {
             if ($file->getError() === UPLOAD_ERR_NO_FILE) {
@@ -159,6 +174,14 @@ class DriveController extends BaseController
             } catch (\Throwable $exception) {
                 $errors[] = $file->getClientName() . ': ' . $exception->getMessage();
             }
+        }
+
+        if (str_contains($this->request->getHeaderLine('Accept'), 'application/json')) {
+            if ($errors !== [] || $created === 0) {
+                return $this->jsonError(implode("\n", $errors) ?: 'No files were uploaded.');
+            }
+
+            return $this->jsonResponse(['success' => true, 'created' => $created]);
         }
 
         $redirect = $this->redirectToFolder($folderId, $context);
@@ -270,6 +293,52 @@ class DriveController extends BaseController
                 $this->currentUserId(),
                 (string) $this->request->getPost('upload_id'),
             );
+
+            return $this->jsonResponse(['success' => true]);
+        } catch (\Throwable $exception) {
+            return $this->jsonError($exception->getMessage());
+        }
+    }
+
+    public function uploadBatchInit(): ResponseInterface
+    {
+        try {
+            $files = json_decode((string) $this->request->getPost('files'), true, 32, JSON_THROW_ON_ERROR);
+            if (! is_array($files)) throw new \DomainException('Invalid upload manifest.');
+            $result = (new \App\Libraries\BatchUploadService())->init($this->currentUserId(), $this->nullableInt($this->request->getPost('parent_id')), $files);
+
+            return $this->jsonResponse(['success' => true] + $result);
+        } catch (\Throwable $exception) {
+            return $this->jsonError($exception->getMessage());
+        }
+    }
+
+    public function uploadBatchStage(): ResponseInterface
+    {
+        try {
+            $result = (new \App\Libraries\BatchUploadService())->stage($this->currentUserId(), (string) $this->request->getPost('batch_id'), (string) $this->request->getPost('upload_id'));
+
+            return $this->jsonResponse(['success' => true] + $result);
+        } catch (\Throwable $exception) {
+            return $this->jsonError($exception->getMessage());
+        }
+    }
+
+    public function uploadBatchComplete(): ResponseInterface
+    {
+        try {
+            $item = (new \App\Libraries\BatchUploadService())->complete($this->currentUserId(), (string) $this->request->getPost('batch_id'));
+
+            return $this->jsonResponse(['success' => true, 'item' => $item]);
+        } catch (\Throwable $exception) {
+            return $this->jsonError($exception->getMessage());
+        }
+    }
+
+    public function uploadBatchCancel(): ResponseInterface
+    {
+        try {
+            (new \App\Libraries\BatchUploadService())->cancel($this->currentUserId(), (string) $this->request->getPost('batch_id'));
 
             return $this->jsonResponse(['success' => true]);
         } catch (\Throwable $exception) {
@@ -401,7 +470,12 @@ class DriveController extends BaseController
             $thumb = $thumbService->getThumbnail($this->currentUserId(), $id);
 
             if ($thumb === null) {
-                return redirect()->to('/drive')->with('error', 'Thumbnail not available.');
+                $file = $this->drive->readableFile($this->currentUserId(), $id);
+                if (! str_starts_with((string) $file['item']['mime_type'], 'image/')) {
+                    throw new \DomainException('Thumbnail not available.');
+                }
+
+                return $this->response->download($file['path'], null, true)->setFileName($file['item']['name'])->inline();
             }
 
             $this->response->setHeader('Cache-Control', 'public, max-age=86400');
@@ -439,6 +513,31 @@ class DriveController extends BaseController
         return $this->itemAction(function (DriveService $drive, int $userId) use ($id): void {
             $drive->copyItem($userId, $id, $this->nullableInt($this->request->getPost('target_folder_id')));
         }, 'Item copied.', 'target-modal');
+    }
+
+    public function extract(int $id): RedirectResponse|ResponseInterface
+    {
+        try {
+            $folder = $this->drive->extractArchive(
+                $this->currentUserId(),
+                $id,
+                $this->nullableInt($this->request->getPost('target_folder_id')),
+            );
+
+            $folderUrl = site_url(((int) $folder['user_id'] === $this->currentUserId() ? 'drive' : 'drive/shared-with-me') . '?folder=' . $folder['id']);
+            if (str_contains($this->request->getHeaderLine('Accept'), 'application/json')) {
+                return $this->jsonResponse(['success' => true, 'folder' => $folder, 'folder_url' => $folderUrl, 'message' => lang('App.transfers.extracted')]);
+            }
+
+            return redirect()->to($folderUrl)->with('message', lang('App.transfers.extracted'));
+        } catch (\Throwable $exception) {
+            if (str_contains($this->request->getHeaderLine('Accept'), 'application/json')) {
+                return $this->jsonError($exception->getMessage());
+            }
+
+            return $this->redirectToFolder($this->nullableInt($this->request->getPost('parent_id')), $this->driveContext())
+                ->with('error', $exception->getMessage())->with('modal', 'extract-modal')->with('modal_error', $exception->getMessage());
+        }
     }
 
     public function delete(int $id): RedirectResponse
@@ -561,17 +660,20 @@ class DriveController extends BaseController
                 // Avoid duplicate names inside ZIP
                 $suffix = 2;
                 $original = $name;
-                while (in_array($name, $names, true)) {
+                while (in_array(mb_strtolower($name), $names, true)) {
                     $ext = pathinfo($original, PATHINFO_EXTENSION);
                     $base = $ext !== '' ? substr($original, 0, -(strlen($ext) + 1)) : $original;
                     $name = $base . ' (' . $suffix . ')' . ($ext !== '' ? '.' . $ext : '');
                     $suffix++;
                 }
-                $names[] = $name;
-                $zip->addFile($entry['path'], $name);
+                $names[] = mb_strtolower($name);
+                if (! $zip->addFile($entry['path'], $name) || ! $zip->setCompressionName($name, \ZipArchive::CM_STORE)) {
+                    $zip->close();
+                    throw new \RuntimeException('Could not create ZIP archive.');
+                }
             }
 
-            $zip->close();
+            if (! $zip->close()) throw new \RuntimeException('Could not create ZIP archive.');
 
             (new ActivityLogger())->record($userId, 'drive.bulk_download', 'success', [
                 'type' => 'drive_item',
@@ -600,6 +702,7 @@ class DriveController extends BaseController
                 'selected' => $ids,
                 'error'    => $exception->getMessage(),
             ]);
+            if (isset($tmpPath) && is_file($tmpPath)) @unlink($tmpPath);
 
             return $this->redirectToFolder($folderId)->with('error', $exception->getMessage());
         }
@@ -732,6 +835,8 @@ class DriveController extends BaseController
             ? (string) ($profile['default_sort'] ?? 'name')
             : 'name';
         $defaultDir = (string) ($profile['default_sort_dir'] ?? 'asc') === 'desc' ? 'desc' : 'asc';
+        $requestedView = (string) ($this->request->getGet('view') ?? $defaultView);
+        $viewMode = in_array($requestedView, ['list', 'grid', 'gallery'], true) ? $requestedView : 'list';
         $filters = [
             'q'         => $this->request->getGet('q'),
             'sort'      => $this->request->getGet('sort') ?? $defaultSort,
@@ -745,6 +850,10 @@ class DriveController extends BaseController
             'date_from' => $this->request->getGet('date_from'),
             'date_to'   => $this->request->getGet('date_to'),
         ];
+        if ($viewMode === 'gallery') {
+            $filters['type'] = 'image';
+            $filters['perPage'] ??= 48;
+        }
         $result = match ($section) {
             'recent' => $this->drive->listRecent($userId, $filters),
             'starred' => $this->drive->listStarred($userId, $filters),
@@ -777,7 +886,7 @@ class DriveController extends BaseController
             'currentUser'   => $this->currentUser(),
             'section'       => $section,
             'folderId'      => $folderId,
-            'viewMode'      => $this->request->getGet('view') === null ? $defaultView : ($this->request->getGet('view') === 'grid' ? 'grid' : 'list'),
+            'viewMode'      => $viewMode,
             'items'         => $result['items'],
             'pager'         => $result['pager'],
             'storage'       => $this->drive->userStorageSummary($userId),
