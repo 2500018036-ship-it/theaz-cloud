@@ -26,8 +26,10 @@ PY
 fi
 docker network inspect web-proxy >/dev/null 2>&1 || docker network create web-proxy >/dev/null
 compose=(docker compose -p "$ci_project" -f docker/compose.production.yaml -f docker/compose.ci.yaml)
+dns_conflict="$ci_project-dns-conflict"
 cleanup() {
     code=$?
+    docker rm -f "$dns_conflict" >/dev/null 2>&1 || true
     if [[ "$code" != 0 ]]; then
         "${compose[@]}" logs --tail 40 app web || true
     fi
@@ -38,6 +40,7 @@ cleanup() {
 }
 trap cleanup EXIT
 "${compose[@]}" config --quiet
+python3 -m unittest discover -s tests/ops -p 'test_*.py'
 if command -v node >/dev/null; then
     for script in public/assets/js/*.js; do node --check "$script"; done
 elif [[ "${GITHUB_ACTIONS:-}" == true ]]; then
@@ -52,5 +55,12 @@ docker run --rm --entrypoint sh "cloud-storage-test:$RELEASE_SHA" -c 'find app t
 "${compose[@]}" run --rm tests php vendor/bin/phpunit --no-coverage
 "${compose[@]}" run --rm --no-deps app php spark ops:migrate
 "${compose[@]}" up -d app web --wait --wait-timeout 180
+# Reproduce a second project's generic app alias on the shared-facing network.
+# Restarting Nginx must still select our PHP-FPM backend and serve readiness.
+docker run -d --name "$dns_conflict" --network "${ci_project}_ci_frontend" \
+    --network-alias app --entrypoint sleep "cloud-storage-web:$RELEASE_SHA" 600 >/dev/null
+"${compose[@]}" restart --no-deps web >/dev/null
+curl --fail --silent --show-error --max-time 10 --retry 15 --retry-all-errors \
+    --retry-delay 1 "${CI_BASE_URL%/}/ready" >/dev/null
 python3 scripts/smoke.py --url "$CI_BASE_URL" --compose-dir "$PWD" --file docker/compose.production.yaml --overlay docker/compose.ci.yaml --project "$ci_project"
 echo 'All CI checks passed.'

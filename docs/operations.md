@@ -16,6 +16,8 @@ Public URL: `https://cloud.azrilachdi.web.id`. Azure Nginx terminates TLS and ro
 
 Only web port `127.0.0.1:18080` is published for local diagnostics. MariaDB and PHP-FPM have no host ports. The existing proxy manager, `website-test`, `test.local`, and the Azure Nextcloud vhost remain separate services.
 
+Nginx reaches PHP-FPM through the backend-only alias `theaz-cloud-fpm` and re-resolves it through Docker DNS every ten seconds. Do not use the generic `app` hostname: another project on `web-proxy` can publish the same name. The mail worker explicitly overrides its inherited networks so it never receives the PHP-FPM alias.
+
 Run operational commands as root using `sudo`. Never run `docker compose down -v`, `migrate:refresh`, `migrate:rollback`, or volume pruning against production. Do not print `production.env`, run unfiltered `docker inspect`, or print rendered Compose configuration because they contain secrets. Use `docker compose config --quiet` for validation.
 
 ## Status, login and settings
@@ -69,6 +71,8 @@ sudo systemctl start cloud-storage-backup.service
 sudo journalctl -u cloud-storage-backup.service --since today
 sudo /usr/local/libexec/cloud-storage-backup
 ```
+
+The backup EXIT handler restores only the application services that were running beforehand, waits for their Docker health checks, then checks local `/ready` if web was running. A failed restart or readiness check makes the job fail even when the archive completed; a backup failure keeps its original exit code after recovery is attempted. The `COMPLETE` file describes the archive, not successful service recovery: also inspect the systemd job result. Compression and hashing still run while application services are stopped, so this backup design still needs a maintenance window.
 
 Backup files are root-only and are not deleted automatically. They are on the same data disk: arrange an encrypted copy to a separate machine/disk for disaster recovery, monitor capacity, and set a reviewed retention policy. SQL includes password hashes; environment backups include secrets. Never attach them to issues or upload them unencrypted to a public service.
 
