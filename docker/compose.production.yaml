@@ -49,10 +49,14 @@ services:
       timeout: 5s
       retries: 8
       start_period: 20s
-    networks: [backend, mail_egress]
+    networks:
+      backend: {aliases: [theaz-cloud-fpm]}
+      mail_egress: {}
     logging: *logging
   mail_worker:
     extends: {service: app}
+    # The worker must not inherit the PHP-FPM DNS alias from app.
+    networks: !override [backend, mail_egress]
     mem_limit: 192m
     command: [sh, /var/www/html/scripts/email-worker.sh]
     healthcheck:

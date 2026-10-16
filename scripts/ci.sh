@@ -38,6 +38,7 @@ cleanup() {
 }
 trap cleanup EXIT
 "${compose[@]}" config --quiet
+python3 -m unittest discover -s tests/ops -p 'test_*.py'
 if command -v node >/dev/null; then
     for script in public/assets/js/*.js; do node --check "$script"; done
 elif [[ "${GITHUB_ACTIONS:-}" == true ]]; then

@@ -58,7 +58,8 @@ services:
         max-size: "10m"
         max-file: "5"
     networks:
-      - internal
+      internal:
+        aliases: [theaz-cloud-fpm]
 
   web:
     build:

@@ -16,9 +16,30 @@ compose=(docker compose --env-file production.env --env-file release.env)
 "${compose[@]}" up -d db --wait --wait-timeout 600 >/dev/null
 running=$(${compose[@]} ps --status running --services | tr '\n' ' ')
 resume() {
-    if [[ " $running " == *' app '* ]]; then "${compose[@]}" start app >/dev/null; fi
-    if [[ " $running " == *' web '* ]]; then "${compose[@]}" start web >/dev/null; fi
-    if [[ " $running " == *' mail_worker '* ]]; then "${compose[@]}" start mail_worker >/dev/null; fi
+    backup_status=$?
+    trap - EXIT
+    # Recovery must run even when the backup itself failed, and its failure must
+    # turn a successful archive operation into a failed systemd job.
+    set +e
+    recovery_status=0
+    restore_services=()
+    for service in app web mail_worker; do
+        if [[ " $running " == *" $service "* ]]; then restore_services+=("$service"); fi
+    done
+    if (( ${#restore_services[@]} )); then
+        "${compose[@]}" start --wait --wait-timeout 180 "${restore_services[@]}" || recovery_status=1
+    fi
+    if [[ " $running " == *' web '* ]]; then
+        curl --fail --silent --show-error --max-time 10 --retry 5 --retry-all-errors \
+            --retry-delay 3 --retry-max-time 75 http://127.0.0.1:18080/ready >/dev/null || recovery_status=1
+    fi
+    if (( recovery_status )); then
+        echo 'ERROR: Cloud Storage recovery failed after backup; inspect container health and /ready.' >&2
+        if (( backup_status == 0 )); then backup_status=1; fi
+    else
+        echo 'Cloud Storage recovery verified for services that were running before backup.'
+    fi
+    exit "$backup_status"
 }
 trap resume EXIT
 "${compose[@]}" stop web app >/dev/null
