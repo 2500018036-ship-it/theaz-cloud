@@ -61,6 +61,6 @@ docker run -d --name "$dns_conflict" --network "${ci_project}_ci_frontend" \
     --network-alias app --entrypoint sleep "cloud-storage-web:$RELEASE_SHA" 600 >/dev/null
 "${compose[@]}" restart --no-deps web >/dev/null
 curl --fail --silent --show-error --max-time 10 --retry 15 --retry-all-errors \
-    --retry-delay 1 "$CI_BASE_URL/ready" >/dev/null
+    --retry-delay 1 "${CI_BASE_URL%/}/ready" >/dev/null
 python3 scripts/smoke.py --url "$CI_BASE_URL" --compose-dir "$PWD" --file docker/compose.production.yaml --overlay docker/compose.ci.yaml --project "$ci_project"
 echo 'All CI checks passed.'
